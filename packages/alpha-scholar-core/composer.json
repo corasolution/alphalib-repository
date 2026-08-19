@@ -1,0 +1,22 @@
+{
+    "name": "corasoft/alpha-scholar-core",
+    "description": "Shared identity, metadata, persistent-ID, harvesting, file, search, and AI infrastructure for Alpha Journal and Alpha Repository.",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^12.0|^13.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Corasoft\\AlphaScholar\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Corasoft\\AlphaScholar\\AlphaScholarCoreServiceProvider"
+            ]
+        }
+    }
+}
