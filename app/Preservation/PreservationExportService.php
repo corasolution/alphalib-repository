@@ -4,6 +4,7 @@ namespace Alpha\Journal\Preservation;
 
 use Alpha\Journal\Models\PreservationDeposit;
 use Alpha\Journal\Models\Publication;
+use Corasoft\AlphaScholar\Files\FileStorage;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
@@ -25,11 +26,13 @@ class PreservationExportService
             $journal = $publication->submission->journal;
             $storagePath = "preservation/{$journal->path}/{$publication->id}-bag.zip";
 
-            Storage::disk('r2')->put($storagePath, file_get_contents($zipPath));
+            $disk = app(FileStorage::class)->writeDisk();
+
+            Storage::disk($disk)->put($storagePath, file_get_contents($zipPath));
 
             return PreservationDeposit::updateOrCreate(
                 ['publication_id' => $publication->id],
-                ['disk' => 'r2', 'path' => $storagePath, 'sha256' => $sha256, 'size' => $size]
+                ['disk' => $disk, 'path' => $storagePath, 'sha256' => $sha256, 'size' => $size]
             );
         } finally {
             @unlink($zipPath);

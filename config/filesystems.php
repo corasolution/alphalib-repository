@@ -57,8 +57,19 @@ return [
             'throw' => false,
         ],
 
-        // Cloudflare R2 — submission files, galleys, covers (CLAUDE.md §2). S3-compatible.
-        'r2' => [
+        /*
+         * Submission files, galleys and covers (CLAUDE.md §2).
+         *
+         * Two disks, and every stored row records which of them holds its bytes. That per-row
+         * value is what makes migrating an install from local disk to the bucket safe: while the
+         * move is running, some files are in each place, and each row still knows where to look.
+         * A single disk whose meaning changed underneath would break every file not yet copied.
+         *
+         * 'r2' is the historical name and stays the local default, so existing rows — which all
+         * say 'r2' — keep resolving with no data change. env R2_ACCESS_KEY_ID still switches it
+         * to the bucket wholesale for installs that were already configured that way.
+         */
+        'r2' => env('R2_ACCESS_KEY_ID') ? [
             'driver' => 's3',
             'key' => env('R2_ACCESS_KEY_ID'),
             'secret' => env('R2_SECRET_ACCESS_KEY'),
@@ -68,6 +79,31 @@ return [
             'endpoint' => env('R2_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
+        ] : [
+            'driver' => 'local',
+            'root' => storage_path('app/r2'),
+            'serve' => true,
+            'throw' => false,
+        ],
+
+        /*
+         * The bucket an admin configures in Admin → Storage.
+         *
+         * Left unconfigured here on purpose: AppServiceProvider fills it in from the encrypted
+         * storage_credentials column when a disk is first resolved, so rotating a key takes
+         * effect on the next request rather than after a deploy. The env values below are the
+         * fallback for installs that would rather keep credentials on the server.
+         */
+        'files_cloud' => [
+            'driver' => 's3',
+            'key' => env('R2_ACCESS_KEY_ID'),
+            'secret' => env('R2_SECRET_ACCESS_KEY'),
+            'region' => env('R2_DEFAULT_REGION', 'auto'),
+            'bucket' => env('R2_BUCKET'),
+            'url' => env('R2_URL'),
+            'endpoint' => env('R2_ENDPOINT'),
+            'use_path_style_endpoint' => true,
+            'throw' => true,
         ],
 
     ],
