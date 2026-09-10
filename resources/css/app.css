@@ -10,6 +10,43 @@
     --font-sans:
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
+    /*
+     * Public-site type, with Khmer in every stack.
+     *
+     * These exist because the pages used arbitrary utilities — font-['Hanken_Grotesk'] — which
+     * compile to a font-family with NO fallback. Khmer text therefore rendered in whatever
+     * system font happened to cover the script, at a line-height meant for Latin, which is
+     * what made it look cramped. Naming the stacks once puts the Khmer faces behind the Latin
+     * ones everywhere, so a Khmer glyph is always drawn by a font designed for it.
+     * Indirected through --site-font-* for the same reason the palette below is: this block is
+     * compiled into the stylesheet, which loads AFTER the inline :root in the document head,
+     * so declaring the stack literally here would silently override the admin's font choice.
+     * Resolving var() at use time lets the head win while these stay the fallback.
+     */
+    --font-display: var(--site-font-display, 'Hanken Grotesk', 'Kantumruy Pro', 'Noto Sans Khmer', ui-sans-serif, system-ui, sans-serif);
+    --font-body: var(--site-font-body, 'Source Serif 4', 'Kantumruy Pro', 'Noto Sans Khmer', ui-serif, Georgia, serif);
+
+    /*
+     * Public-site palette.
+     *
+     * Semantic names, never colour names: a template whose primary is green must not be setting a
+     * variable called "blue". Each maps to a runtime custom property that the active template's
+     * palette overrides from an inline :root block in the document head — so switching template
+     * repaints the whole public site without touching a single component.
+     *
+     * The defaults below are the original "Academic Precision" blues, so a site that has never
+     * chosen a template looks exactly as it did before this existed.
+     */
+    --color-site-primary: var(--site-primary, #005a9e);
+    --color-site-primary-dark: var(--site-primary-dark, #004277);
+    --color-site-primary-deep: var(--site-primary-deep, #00446e);
+    --color-site-accent: var(--site-accent, #a2c9ff);
+    --color-site-surface: var(--site-surface, #eff6ff);
+    --color-site-surface-alt: var(--site-surface-alt, #cfe2f5);
+    --color-site-border: var(--site-border, #c1c7d2);
+    --color-site-ink: var(--site-ink, #121c2a);
+    --color-site-body: var(--site-body, #374151);
+    --color-site-muted: var(--site-muted, #727782);
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
@@ -72,79 +109,82 @@
     ::before,
     ::backdrop,
     ::file-selector-button {
-        border-color: var(--color-gray-200, currentColor);
+        border-color: var(--border, currentColor);
     }
 }
 
 :root {
-    --background: hsl(0, 0%, 100%);
-    --foreground: hsl(0, 0%, 3.9%);
+    /* "Academic Precision" — anchored on the public site's palette so both halves of the app
+       agree: #004277 primary dark, #005a9e primary, #EFF6FF surface, #c1c7d2 border. */
+    --background: hsl(210, 60%, 99%);
+    --foreground: hsl(214, 41%, 12%);
     --card: hsl(0, 0%, 100%);
-    --card-foreground: hsl(0, 0%, 3.9%);
+    --card-foreground: hsl(214, 41%, 12%);
     --popover: hsl(0, 0%, 100%);
-    --popover-foreground: hsl(0, 0%, 3.9%);
-    --primary: hsl(0, 0%, 9%);
-    --primary-foreground: hsl(0, 0%, 98%);
-    --secondary: hsl(0, 0%, 96.1%);
-    --secondary-foreground: hsl(0, 0%, 9%);
-    --muted: hsl(0, 0%, 96.1%);
-    --muted-foreground: hsl(0, 0%, 45.1%);
-    --accent: hsl(0, 0%, 96.1%);
-    --accent-foreground: hsl(0, 0%, 9%);
-    --destructive: hsl(0, 84.2%, 60.2%);
-    --destructive-foreground: hsl(0, 0%, 98%);
-    --border: hsl(0, 0%, 92.8%);
-    --input: hsl(0, 0%, 89.8%);
-    --ring: hsl(0, 0%, 3.9%);
-    --chart-1: hsl(12, 76%, 61%);
-    --chart-2: hsl(173, 58%, 39%);
-    --chart-3: hsl(197, 37%, 24%);
-    --chart-4: hsl(43, 74%, 66%);
-    --chart-5: hsl(27, 87%, 67%);
+    --popover-foreground: hsl(214, 41%, 12%);
+    --primary: hsl(206, 100%, 31%);
+    --primary-foreground: hsl(0, 0%, 100%);
+    --secondary: hsl(214, 100%, 97%);
+    --secondary-foreground: hsl(206, 100%, 23%);
+    --muted: hsl(214, 100%, 97%);
+    --muted-foreground: hsl(220, 6%, 48%);
+    --accent: hsl(214, 100%, 95%);
+    --accent-foreground: hsl(206, 100%, 23%);
+    --destructive: hsl(0, 72%, 51%);
+    --destructive-foreground: hsl(0, 0%, 100%);
+    --border: hsl(216, 17%, 79%);
+    --input: hsl(216, 17%, 79%);
+    --ring: hsl(206, 100%, 31%);
+    --chart-1: hsl(206, 100%, 31%);
+    --chart-2: hsl(199, 89%, 48%);
+    --chart-3: hsl(188, 78%, 41%);
+    --chart-4: hsl(217, 91%, 60%);
+    --chart-5: hsl(224, 64%, 33%);
     --radius: 0.5rem;
-    --sidebar-background: hsl(0, 0%, 98%);
-    --sidebar-foreground: hsl(240, 5.3%, 30%);
-    --sidebar-primary: hsl(0, 0%, 10%);
-    --sidebar-primary-foreground: hsl(0, 0%, 98%);
-    --sidebar-accent: hsl(0, 0%, 94%);
-    --sidebar-accent-foreground: hsl(0, 0%, 30%);
-    --sidebar-border: hsl(0, 0%, 91%);
-    --sidebar-ring: hsl(217.2, 91.2%, 59.8%);
+    /* variant="inset" means this paints the sidebar AND the gutter around the content card. */
+    --sidebar-background: hsl(206, 100%, 23%);
+    --sidebar-foreground: hsl(210, 100%, 91%);
+    --sidebar-primary: hsl(206, 100%, 31%);
+    --sidebar-primary-foreground: hsl(0, 0%, 100%);
+    --sidebar-accent: hsl(206, 100%, 31%);
+    --sidebar-accent-foreground: hsl(0, 0%, 100%);
+    --sidebar-border: hsl(206, 100%, 28%);
+    --sidebar-ring: hsl(213, 100%, 80%);
 }
 
 .dark {
-    --background: hsl(0, 0%, 3.9%);
-    --foreground: hsl(0, 0%, 98%);
-    --card: hsl(0, 0%, 3.9%);
-    --card-foreground: hsl(0, 0%, 98%);
-    --popover: hsl(0, 0%, 3.9%);
-    --popover-foreground: hsl(0, 0%, 98%);
-    --primary: hsl(0, 0%, 98%);
-    --primary-foreground: hsl(0, 0%, 9%);
-    --secondary: hsl(0, 0%, 14.9%);
-    --secondary-foreground: hsl(0, 0%, 98%);
-    --muted: hsl(0, 0%, 6.9%);
-    --muted-foreground: hsl(0, 0%, 63.9%);
-    --accent: hsl(0, 0%, 14.9%);
-    --accent-foreground: hsl(0, 0%, 98%);
-    --destructive: hsl(0, 84%, 60%);
-    --destructive-foreground: hsl(0, 0%, 98%);
-    --border: hsl(0, 0%, 14.9%);
-    --input: hsl(0, 0%, 14.9%);
-    --ring: hsl(0, 0%, 83.1%);
-    --chart-1: hsl(220, 70%, 50%);
-    --chart-2: hsl(160, 60%, 45%);
-    --chart-3: hsl(30, 80%, 55%);
-    --chart-4: hsl(280, 65%, 60%);
-    --chart-5: hsl(340, 75%, 55%);
-    --sidebar-background: hsl(0, 0%, 7%);
-    --sidebar-foreground: hsl(0, 0%, 80%);
-    --sidebar-primary: hsl(360, 100%, 100%);
+    --background: hsl(214, 41%, 8%);
+    --foreground: hsl(210, 40%, 96%);
+    --card: hsl(214, 38%, 11%);
+    --card-foreground: hsl(210, 40%, 96%);
+    --popover: hsl(214, 38%, 11%);
+    --popover-foreground: hsl(210, 40%, 96%);
+    --primary: hsl(213, 100%, 80%);
+    --primary-foreground: hsl(214, 41%, 12%);
+    --secondary: hsl(214, 32%, 18%);
+    --secondary-foreground: hsl(210, 40%, 96%);
+    --muted: hsl(214, 32%, 16%);
+    --muted-foreground: hsl(215, 20%, 68%);
+    --accent: hsl(214, 32%, 20%);
+    --accent-foreground: hsl(213, 100%, 85%);
+    --destructive: hsl(0, 72%, 58%);
+    --destructive-foreground: hsl(0, 0%, 100%);
+    --border: hsl(214, 28%, 22%);
+    --input: hsl(214, 28%, 22%);
+    --ring: hsl(213, 100%, 80%);
+    --chart-1: hsl(213, 100%, 70%);
+    --chart-2: hsl(199, 89%, 55%);
+    --chart-3: hsl(188, 78%, 50%);
+    --chart-4: hsl(217, 91%, 65%);
+    --chart-5: hsl(224, 70%, 60%);
+    --sidebar-background: hsl(214, 45%, 10%);
+    --sidebar-foreground: hsl(210, 40%, 88%);
+    --sidebar-primary: hsl(206, 100%, 36%);
     --sidebar-primary-foreground: hsl(0, 0%, 100%);
-    --sidebar-accent: hsl(0, 0%, 15.9%);
-    --sidebar-accent-foreground: hsl(240, 4.8%, 95.9%);
-    --sidebar-border: hsl(0, 0%, 15.9%);
-    --sidebar-ring: hsl(217.2, 91.2%, 59.8%);
+    --sidebar-accent: hsl(206, 90%, 26%);
+    --sidebar-accent-foreground: hsl(0, 0%, 100%);
+    --sidebar-border: hsl(214, 30%, 20%);
+    --sidebar-ring: hsl(213, 100%, 75%);
 }
 
 @layer base {
@@ -155,4 +195,24 @@
     body {
         @apply bg-background text-foreground;
     }
+}
+
+/*
+ * Khmer typography (CLAUDE.md §7: "Do not ship a Latin-only type scale").
+ *
+ * Khmer stacks subscript consonants (ជើង) below the baseline and vowel signs above, so a line
+ * box sized for Latin clips them against the neighbouring line. Scoped to [lang="km"] so the
+ * English side keeps its own rhythm untouched.
+ */
+[lang='km'] {
+    line-height: 1.9;
+}
+
+[lang='km'] h1,
+[lang='km'] h2,
+[lang='km'] h3,
+[lang='km'] h4 {
+    /* Headings are the worst case: large glyphs, tight leading, stacked marks. */
+    line-height: 1.5;
+    padding-bottom: 0.1em;
 }
