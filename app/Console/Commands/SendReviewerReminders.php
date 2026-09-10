@@ -4,7 +4,7 @@ namespace Alpha\Journal\Console\Commands;
 
 use Alpha\Journal\Mail\EmailTemplateRenderer;
 use Alpha\Journal\Models\ReviewAssignment;
-use Alpha\Journal\Notifications\TemplatedEmailNotification;
+use Alpha\Journal\Notifications\TemplatedNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Notification;
 
@@ -73,7 +73,7 @@ class SendReviewerReminders extends Command
             return false;
         }
 
-        Notification::send($assignment->reviewer, new TemplatedEmailNotification($rendered));
+        Notification::send($assignment->reviewer, new TemplatedNotification($rendered, $key));
         $assignment->update(['last_reminder_sent_at' => $now]);
 
         return true;

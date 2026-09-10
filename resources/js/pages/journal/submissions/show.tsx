@@ -1,10 +1,18 @@
+import FileDrop from '@/components/file-drop';
+import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
-import { FileText, User } from 'lucide-react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { FileText, User, UserPlus, X } from 'lucide-react';
+import { ChangeEvent, FormEventHandler } from 'react';
 
 interface TimelineEntry {
     id: number;
@@ -49,6 +57,22 @@ interface Person {
     name: string;
     role: string;
     stage: string | null;
+    /** Absent for the author, who is listed here but holds no stage assignment. */
+    assignmentId?: number;
+    isCurrentStage?: boolean;
+}
+
+interface AssignableEditor {
+    id: number;
+    name: string;
+    role: string;
+}
+
+interface Galley {
+    id: number;
+    label: string;
+    originalName: string;
+    size: string | null;
 }
 
 interface SubmissionFile {
@@ -62,7 +86,23 @@ interface SubmissionFile {
     createdAt: string;
 }
 
+interface LegalDecision {
+    value: string;
+    label: string;
+}
+
+interface AvailableReviewer {
+    id: number;
+    name: string;
+}
+
+interface AvailableIssue {
+    id: number;
+    identification: string;
+}
+
 interface Props {
+    journal: string;
     submission: {
         id: number;
         stage: string;
@@ -70,17 +110,32 @@ interface Props {
         reviewType: string;
         submittedAt: string | null;
         section: string | null;
+        doi: string | null;
         currentManuscript: { id: number; originalName: string; version: number; uploadedBy: string | null } | null;
+        issue: string | null;
     };
     timeline: TimelineEntry[];
     reviewRounds: ReviewRound[];
     decisions: Decision[];
     people: Person[];
+    canAssignEditors: boolean;
+    assignableEditors: AssignableEditor[];
+    /** Whether anyone at all holds an editorial role here — an empty picker means two different things. */
+    journalHasEditors: boolean;
+    canUploadFiles: boolean;
+    /** Whether the journal has a registered DOI prefix to generate from. */
+    hasDoiPrefix: boolean;
+    galleys: Galley[];
     files: SubmissionFile[];
     can: {
         recordDecision: boolean;
         publish: boolean;
+        assignReviewer: boolean;
+        uploadFile: boolean;
     };
+    legalDecisions: LegalDecision[];
+    availableReviewers: AvailableReviewer[];
+    availableIssues: AvailableIssue[];
 }
 
 function reviewAssignmentStatus(assignment: ReviewAssignment): string {
@@ -96,7 +151,479 @@ function formatBytes(bytes: number): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function SubmissionShow({ submission, timeline, reviewRounds, decisions, people, files }: Props) {
+function InviteReviewerForm({
+    submissionId,
+    journal,
+    availableReviewers,
+}: {
+    submissionId: number;
+    journal: string;
+    availableReviewers: AvailableReviewer[];
+}) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        reviewer_id: '',
+        due_at: '',
+    });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+
+        post(route('journal.submissions.review-assignments.store', { journal, submission: submissionId }), {
+            preserveScroll: true,
+            onSuccess: () => reset(),
+        });
+    };
+
+    if (availableReviewers.length === 0) {
+        return <p className="text-muted-foreground text-sm">No users hold the Reviewer role on this journal yet.</p>;
+    }
+
+    return (
+        <form onSubmit={submit} className="space-y-3">
+            <div className="grid gap-2">
+                <Label htmlFor="reviewer_id">Reviewer</Label>
+                <Select value={data.reviewer_id} onValueChange={(value) => setData('reviewer_id', value)}>
+                    <SelectTrigger id="reviewer_id">
+                        <SelectValue placeholder="Choose a reviewer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableReviewers.map((reviewer) => (
+                            <SelectItem key={reviewer.id} value={String(reviewer.id)}>
+                                {reviewer.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <InputError message={errors.reviewer_id} />
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="due_at">Due date</Label>
+                <input
+                    id="due_at"
+                    type="date"
+                    className="border-input bg-background rounded-md border px-3 py-2 text-sm shadow-sm"
+                    value={data.due_at}
+                    onChange={(e) => setData('due_at', e.target.value)}
+                />
+                <InputError message={errors.due_at} />
+            </div>
+
+            <Button type="submit" size="sm" disabled={processing || !data.reviewer_id}>
+                Invite reviewer
+            </Button>
+        </form>
+    );
+}
+
+function AssignIssueForm({ submissionId, journal, availableIssues }: { submissionId: number; journal: string; availableIssues: AvailableIssue[] }) {
+    const { data, setData, post, processing, errors } = useForm({ issue_id: '' });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+
+        post(route('journal.submissions.issue-assignment.store', { journal, submission: submissionId }), { preserveScroll: true });
+    };
+
+    if (availableIssues.length === 0) {
+        return <p className="text-muted-foreground text-sm">No issues exist yet.</p>;
+    }
+
+    return (
+        <form onSubmit={submit} className="space-y-2">
+            {/* Labelled and given an id: an unlabelled select is unreachable by screen reader. */}
+            <Label htmlFor="issue_id" className="sr-only">
+                Issue
+            </Label>
+            <Select value={data.issue_id} onValueChange={(value) => setData('issue_id', value)}>
+                <SelectTrigger id="issue_id">
+                    <SelectValue placeholder="Choose an issue" />
+                </SelectTrigger>
+                <SelectContent>
+                    {availableIssues.map((issue) => (
+                        <SelectItem key={issue.id} value={String(issue.id)}>
+                            {issue.identification}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <InputError message={errors.issue_id} />
+            <Button type="submit" size="sm" disabled={processing || !data.issue_id}>
+                Assign to issue
+            </Button>
+        </form>
+    );
+}
+
+function UploadFileForm({ submissionId, journal }: { submissionId: number; journal: string }) {
+    const { data, setData, post, processing, errors, reset } = useForm<{ file: File | null; as_manuscript: boolean }>({
+        file: null,
+        as_manuscript: true,
+    });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+
+        post(route('journal.submissions.files.store', { journal, submission: submissionId }), {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => reset(),
+        });
+    };
+
+    const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setData('file', e.target.files?.[0] ?? null);
+    };
+
+    return (
+        <form onSubmit={submit} className="space-y-2 border-t pt-3">
+            <FileDrop value={data.file} onChange={(file) => setData('file', file)} accept=".pdf,.doc,.docx,.odt" hint="PDF, DOC, DOCX or ODT" />
+            <InputError message={errors.file} />
+            <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={data.as_manuscript} onCheckedChange={(checked) => setData('as_manuscript', checked === true)} />
+                This replaces the current manuscript
+            </label>
+            <Button type="submit" size="sm" disabled={processing || !data.file}>
+                Upload
+            </Button>
+        </form>
+    );
+}
+
+function DecisionForm({ submissionId, journal, legalDecisions }: { submissionId: number; journal: string; legalDecisions: LegalDecision[] }) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        decision: '',
+        reason: '',
+    });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+
+        post(route('journal.submissions.decisions.store', { journal, submission: submissionId }), {
+            preserveScroll: true,
+            onSuccess: () => reset(),
+        });
+    };
+
+    if (legalDecisions.length === 0) {
+        return <p className="text-muted-foreground text-sm">No decision is currently available for this submission's stage.</p>;
+    }
+
+    return (
+        <form onSubmit={submit} className="space-y-3">
+            <div className="grid gap-2">
+                <Label htmlFor="decision">Decision</Label>
+                <Select value={data.decision} onValueChange={(value) => setData('decision', value)}>
+                    <SelectTrigger id="decision">
+                        <SelectValue placeholder="Choose a decision" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {legalDecisions.map((decision) => (
+                            <SelectItem key={decision.value} value={decision.value}>
+                                {decision.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <InputError message={errors.decision} />
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="reason">Reason (sent to the author)</Label>
+                <textarea
+                    id="reason"
+                    className="border-input bg-background min-h-24 rounded-md border px-3 py-2 text-sm shadow-sm"
+                    value={data.reason}
+                    onChange={(e) => setData('reason', e.target.value)}
+                />
+                <InputError message={errors.reason} />
+            </div>
+
+            <Button type="submit" disabled={processing || !data.decision}>
+                Record decision
+            </Button>
+        </form>
+    );
+}
+
+/**
+ * Assigns editorial responsibility for the current stage.
+ *
+ * This is what SubmissionWorkflow::guardStageHasEditor() requires before any decision is allowed.
+ * There was no way to do it from the app at all, so every submitted manuscript was stuck at its
+ * first decision — the dashboard even counted them under "no editor assigned" with nothing to
+ * click.
+ */
+function AssignEditor({
+    journal,
+    submissionId,
+    editors,
+    hasAnyEditor,
+}: {
+    journal: string;
+    submissionId: number;
+    editors: AssignableEditor[];
+    hasAnyEditor: boolean;
+}) {
+    const form = useForm({ user_id: '' });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        form.post(route('journal.submissions.editors.store', { journal, submission: submissionId }), {
+            preserveScroll: true,
+            onSuccess: () => form.reset(),
+        });
+    };
+
+    if (editors.length === 0) {
+        // Two very different situations wore the same sentence. "Everyone is already
+        // assigned" on a journal with no editors at all is simply false, and it hid the
+        // real problem: no decision can be recorded until somebody holds the role, and
+        // nothing on this screen said where to grant it.
+        return (
+            <p className="text-muted-foreground border-t pt-3 text-xs">
+                {hasAnyEditor ? (
+                    'Everyone with an editor role on this journal is already assigned.'
+                ) : (
+                    <>
+                        Nobody holds an editor role on this journal yet, so no decision can be recorded. Grant one in{' '}
+                        <Link href={`/journal/${journal}/people`} className="underline underline-offset-2">
+                            Journal &rarr; People
+                        </Link>
+                        .
+                    </>
+                )}
+            </p>
+        );
+    }
+
+    return (
+        <form onSubmit={submit} className="space-y-2 border-t pt-3">
+            <Label htmlFor="assign_editor" className="text-muted-foreground text-xs">
+                Assign an editor
+            </Label>
+            <div className="flex items-center gap-2">
+                <Select value={form.data.user_id} onValueChange={(value) => form.setData('user_id', value)}>
+                    <SelectTrigger id="assign_editor" className="h-8">
+                        <SelectValue placeholder="Choose someone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {editors.map((editor) => (
+                            <SelectItem key={editor.id} value={String(editor.id)}>
+                                {editor.name} · {editor.role}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Button type="submit" size="sm" disabled={form.processing || !form.data.user_id}>
+                    <UserPlus className="size-4" />
+                </Button>
+            </div>
+            <InputError message={form.errors.user_id} />
+        </form>
+    );
+}
+/**
+ * The article's DOI — the permanent link a citation points at.
+ *
+ * Deliberately an explicit editorial act rather than something generated on publish: a DOI is a
+ * promise that a URL resolves forever, and the prefix belongs to a real Crossref or DataCite
+ * membership. "Generate" only fills the field from the journal's registered prefix; an editor can
+ * always paste one issued elsewhere instead.
+ */
+function DoiCard({
+    journal,
+    submissionId,
+    doi,
+    hasPrefix,
+    canEdit,
+}: {
+    journal: string;
+    submissionId: number;
+    doi: string | null;
+    hasPrefix: boolean;
+    canEdit: boolean;
+}) {
+    const form = useForm({ doi: doi ?? '' });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        form.put(route('journal.submissions.doi.update', { journal, submission: submissionId }), { preserveScroll: true });
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-base">DOI</CardTitle>
+                <CardDescription>The permanent identifier readers and citation managers resolve.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                {!canEdit && <p className="text-muted-foreground text-sm">{doi ?? 'No DOI assigned.'}</p>}
+
+                {canEdit && (
+                    <form onSubmit={submit} className="space-y-2">
+                        <Input
+                            id="doi"
+                            value={form.data.doi}
+                            onChange={(e) => form.setData('doi', e.target.value)}
+                            placeholder="10.5555/journal.v1.i1.a42"
+                            className="font-mono text-sm"
+                        />
+                        <InputError message={form.errors.doi} />
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button type="submit" size="sm" disabled={form.processing}>
+                                Save
+                            </Button>
+                            {hasPrefix ? (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                        router.post(
+                                            route('journal.submissions.doi.generate', { journal, submission: submissionId }),
+                                            {},
+                                            { preserveScroll: true },
+                                        )
+                                    }
+                                >
+                                    Generate from prefix
+                                </Button>
+                            ) : (
+                                <span className="text-muted-foreground text-xs">
+                                    Set a DOI prefix in{' '}
+                                    <Link href={route('journal.settings.edit', { journal })} className="underline underline-offset-2">
+                                        Journal settings
+                                    </Link>{' '}
+                                    to generate these automatically.
+                                </span>
+                            )}
+                        </div>
+                    </form>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+/**
+ * Article galleys — the file a reader actually downloads (CLAUDE.md §7).
+ *
+ * OJS produces these during Production. Without one, publishing yields a title on the public site
+ * with nothing to open, which is most of the point of publishing it.
+ */
+function GalleysCard({
+    journal,
+    submissionId,
+    galleys,
+    canUpload,
+}: {
+    journal: string;
+    submissionId: number;
+    galleys: Galley[];
+    canUpload: boolean;
+}) {
+    const form = useForm<{ label: string; file: File | null }>({ label: 'PDF', file: null });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        form.post(route('journal.submissions.galleys.store', { journal, submission: submissionId }), {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => form.reset(),
+        });
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-base">Galleys</CardTitle>
+                <CardDescription>The file readers download. Without one, a published article has nothing to open.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                {galleys.length === 0 && <p className="text-muted-foreground text-sm">No galley yet.</p>}
+
+                {galleys.map((galley) => (
+                    <div key={galley.id} className="flex items-center gap-2 rounded-md border p-2 text-sm">
+                        <FileText className="text-muted-foreground size-4 shrink-0" />
+                        <span className="min-w-0 flex-1">
+                            <span className="block font-medium">{galley.label}</span>
+                            <span className="text-muted-foreground block truncate text-xs">
+                                {galley.originalName}
+                                {galley.size ? ` · ${galley.size}` : ''}
+                            </span>
+                        </span>
+                        {canUpload && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 shrink-0"
+                                aria-label={`Remove ${galley.label} galley`}
+                                onClick={() =>
+                                    router.delete(
+                                        route('journal.submissions.galleys.destroy', {
+                                            journal,
+                                            submission: submissionId,
+                                            publicationGalley: galley.id,
+                                        }),
+                                        { preserveScroll: true },
+                                    )
+                                }
+                            >
+                                <X className="size-3.5" />
+                            </Button>
+                        )}
+                    </div>
+                ))}
+
+                {canUpload && (
+                    <form onSubmit={submit} className="space-y-2 border-t pt-3">
+                        <Label htmlFor="galley_label" className="text-muted-foreground text-xs">
+                            Add a galley
+                        </Label>
+                        <Input
+                            id="galley_label"
+                            value={form.data.label}
+                            onChange={(e) => form.setData('label', e.target.value)}
+                            placeholder="PDF"
+                            className="h-8"
+                        />
+                        <FileDrop
+                            value={form.data.file}
+                            onChange={(file) => form.setData('file', file)}
+                            accept=".pdf,.html,.htm,.xml,.epub"
+                            hint="PDF, HTML, XML or EPUB"
+                        />
+                        <InputError message={form.errors.file} />
+                        <InputError message={form.errors.label} />
+                        <Button type="submit" size="sm" disabled={form.processing || !form.data.file || !form.data.label.trim()}>
+                            Upload
+                        </Button>
+                    </form>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+export default function SubmissionShow({
+    journal,
+    submission,
+    timeline,
+    reviewRounds,
+    decisions,
+    people,
+    canAssignEditors,
+    assignableEditors,
+    journalHasEditors,
+    canUploadFiles,
+    hasDoiPrefix,
+    galleys,
+    files,
+    can,
+    legalDecisions,
+    availableReviewers,
+    availableIssues,
+}: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: `Submission #${submission.id}`, href: '#' },
@@ -153,6 +680,24 @@ export default function SubmissionShow({ submission, timeline, reviewRounds, dec
                             </CardContent>
                         </Card>
 
+                        {(submission.issue || can.recordDecision) && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">Issue</CardTitle>
+                                    <CardDescription>Required before this submission can be published.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {submission.issue ? (
+                                        <Badge variant="secondary">{submission.issue}</Badge>
+                                    ) : (
+                                        can.recordDecision && (
+                                            <AssignIssueForm submissionId={submission.id} journal={journal} availableIssues={availableIssues} />
+                                        )
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+
                         <Card>
                             <CardHeader>
                                 <CardTitle className="text-base">Review rounds</CardTitle>
@@ -175,6 +720,12 @@ export default function SubmissionShow({ submission, timeline, reviewRounds, dec
                                         </div>
                                     </div>
                                 ))}
+                                {can.assignReviewer && (
+                                    <div className="border-t pt-4">
+                                        <p className="mb-2 text-sm font-medium">Invite a reviewer</p>
+                                        <InviteReviewerForm submissionId={submission.id} journal={journal} availableReviewers={availableReviewers} />
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -201,6 +752,18 @@ export default function SubmissionShow({ submission, timeline, reviewRounds, dec
                                 ))}
                             </CardContent>
                         </Card>
+
+                        {can.recordDecision && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">Record a decision</CardTitle>
+                                    <CardDescription>Only decisions legal from the current stage are offered.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <DecisionForm submissionId={submission.id} journal={journal} legalDecisions={legalDecisions} />
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
 
                     {/* Right: people and files */}
@@ -208,22 +771,66 @@ export default function SubmissionShow({ submission, timeline, reviewRounds, dec
                         <Card>
                             <CardHeader>
                                 <CardTitle className="text-base">People</CardTitle>
+                                <CardDescription>A submission cannot move until someone editorial is assigned to its current stage.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 {people.map((person) => (
-                                    <div key={`${person.userId}-${person.role}`} className="flex items-center gap-2 text-sm">
-                                        <User className="text-muted-foreground size-4" />
-                                        <div>
-                                            <p>{person.name}</p>
+                                    <div
+                                        key={`${person.userId}-${person.role}-${person.stage ?? 'none'}`}
+                                        className="flex items-center gap-2 text-sm"
+                                    >
+                                        <User className="text-muted-foreground size-4 shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate">{person.name}</p>
                                             <p className="text-muted-foreground text-xs">
                                                 {person.role}
                                                 {person.stage ? ` · ${person.stage}` : ''}
                                             </p>
                                         </div>
+                                        {canAssignEditors && person.assignmentId && person.isCurrentStage && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="size-7 shrink-0"
+                                                aria-label={`Remove ${person.name}`}
+                                                onClick={() =>
+                                                    router.delete(
+                                                        route('journal.submissions.editors.destroy', {
+                                                            journal,
+                                                            submission: submission.id,
+                                                            stageAssignment: person.assignmentId,
+                                                        }),
+                                                        { preserveScroll: true },
+                                                    )
+                                                }
+                                            >
+                                                <X className="size-3.5" />
+                                            </Button>
+                                        )}
                                     </div>
                                 ))}
+
+                                {canAssignEditors && (
+                                    <AssignEditor
+                                        journal={journal}
+                                        submissionId={submission.id}
+                                        editors={assignableEditors}
+                                        hasAnyEditor={journalHasEditors}
+                                    />
+                                )}
                             </CardContent>
                         </Card>
+
+                        <DoiCard
+                            journal={journal}
+                            submissionId={submission.id}
+                            doi={submission.doi}
+                            hasPrefix={hasDoiPrefix}
+                            canEdit={can.recordDecision}
+                        />
+
+                        <GalleysCard journal={journal} submissionId={submission.id} galleys={galleys} canUpload={canUploadFiles} />
 
                         <Card>
                             <CardHeader>
@@ -245,6 +852,7 @@ export default function SubmissionShow({ submission, timeline, reviewRounds, dec
                                         </div>
                                     </div>
                                 ))}
+                                {can.uploadFile && <UploadFileForm submissionId={submission.id} journal={journal} />}
                             </CardContent>
                         </Card>
                     </div>

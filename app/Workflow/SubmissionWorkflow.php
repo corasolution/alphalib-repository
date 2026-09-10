@@ -44,6 +44,21 @@ class SubmissionWorkflow
     /** @var array<string> decisions requiring a second editor's countersign under require_dual_approval */
     private const DUAL_APPROVAL_DECISIONS = ['accept', 'decline'];
 
+    /**
+     * Which decisions are legal from a given stage — used to render only valid actions in the
+     * decision UI (§13.5) rather than let the workflow itself be the only place that rejects an
+     * illegal choice after the fact.
+     *
+     * @return EditorialDecisionType[]
+     */
+    public function legalDecisionsFrom(SubmissionStage $stage): array
+    {
+        return array_values(array_filter(
+            EditorialDecisionType::cases(),
+            fn (EditorialDecisionType $decision) => in_array($stage, self::TRANSITIONS[$decision->value]['from'], true),
+        ));
+    }
+
     public function recordDecision(
         Submission $submission,
         User $actor,
@@ -118,6 +133,8 @@ class SubmissionWorkflow
         $fromStage = $submission->stage->value;
         $submission->update(['stage' => $toStage->value]);
 
+        $this->carryEditorsForward($submission, $fromStage, $toStage);
+
         if ($decision === EditorialDecisionType::Publish) {
             $publication = $submission->currentPublication;
             $publication->update([
@@ -132,6 +149,49 @@ class SubmissionWorkflow
             'from_stage' => $fromStage,
             'to_stage' => $toStage->value,
         ]);
+    }
+
+    /**
+     * Moves the editorial assignments along with the submission.
+     *
+     * guardStageHasEditor() checks the CURRENT stage, so without this an editor lost authority
+     * over a submission the instant they acted on it: the stage advanced, no assignment existed
+     * there, and the very next decision threw "has no assigned editor". The people responsible
+     * for a manuscript stay responsible for it as it moves.
+     *
+     * Only the roles that carry decision authority travel. A copyeditor assigned during
+     * Copyediting has no business being auto-attached to Production, and the guard would not
+     * count them anyway.
+     *
+     * Terminal stages are skipped — no decision is legal from Published or Declined, so an
+     * assignment there would be a row nothing ever reads.
+     */
+    private function carryEditorsForward(Submission $submission, string $fromStage, SubmissionStage $toStage): void
+    {
+        if ($toStage->isTerminal() || $fromStage === $toStage->value) {
+            return;
+        }
+
+        $editorialRoles = [
+            JournalRole::Editor->value,
+            JournalRole::SectionEditor->value,
+            JournalRole::GuestEditor->value,
+        ];
+
+        $assignments = $submission->stageAssignments()
+            ->where('stage', $fromStage)
+            ->whereIn('role', $editorialRoles)
+            ->get();
+
+        foreach ($assignments as $assignment) {
+            // firstOrCreate so a submission bounced back to a stage it has already visited does
+            // not accumulate duplicate rows for the same person.
+            $submission->stageAssignments()->firstOrCreate([
+                'user_id' => $assignment->user_id,
+                'stage' => $toStage->value,
+                'role' => $assignment->role,
+            ]);
+        }
     }
 
     /**
@@ -236,7 +296,8 @@ class SubmissionWorkflow
         }
 
         throw new WorkflowAuthorizationException(
-            "User #{$actor->id} does not have decision authority on submission #{$submission->id}."
+            "{$actor->name} has no editorial role on this journal, so they cannot record decisions "
+            .'on it. Grant an Editor role in Journal → People, or ask an assigned editor to decide.'
         );
     }
 

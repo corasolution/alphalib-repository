@@ -8,7 +8,7 @@ use Alpha\Journal\Models\ReviewRound;
 use Alpha\Journal\Models\Site;
 use Alpha\Journal\Models\Submission;
 use Alpha\Journal\Models\User;
-use Alpha\Journal\Notifications\TemplatedEmailNotification;
+use Alpha\Journal\Notifications\TemplatedNotification;
 use Alpha\Journal\Reviewers\ReviewInvitationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -55,7 +55,7 @@ class ReviewInvitationTest extends TestCase
         $this->assertNotNull($assignment->invited_at);
         $this->assertNotNull($assignment->due_at);
 
-        Notification::assertSentTo($this->reviewer, TemplatedEmailNotification::class, function (TemplatedEmailNotification $notification) use ($assignment) {
+        Notification::assertSentTo($this->reviewer, TemplatedNotification::class, function (TemplatedNotification $notification) use ($assignment) {
             $mail = $notification->toMail($this->reviewer);
             $body = implode("\n", $mail->introLines);
 

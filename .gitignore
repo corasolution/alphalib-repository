@@ -24,3 +24,6 @@ Homestead.yaml
 npm-debug.log
 yarn-error.log
 dump.rdb
+
+# Claude Code project settings — local tooling config, not part of the application.
+.claude/

@@ -5,7 +5,7 @@ namespace Alpha\Journal\Console\Commands;
 use Alpha\Journal\Enums\JournalRole;
 use Alpha\Journal\Mail\EmailTemplateRenderer;
 use Alpha\Journal\Models\ReviewAssignment;
-use Alpha\Journal\Notifications\TemplatedEmailNotification;
+use Alpha\Journal\Notifications\TemplatedNotification;
 use Alpha\Journal\Support\Activity;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Notification;
@@ -82,7 +82,7 @@ class EscalateOverdueReviews extends Command
             ]);
 
             if ($rendered !== null) {
-                Notification::send($editor, new TemplatedEmailNotification($rendered));
+                Notification::send($editor, new TemplatedNotification($rendered, 'review.overdue_escalation'));
             }
         }
 

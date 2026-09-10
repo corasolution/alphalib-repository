@@ -6,7 +6,7 @@ use Alpha\Journal\Mail\EmailTemplateRenderer;
 use Alpha\Journal\Models\ReviewAssignment;
 use Alpha\Journal\Models\ReviewRound;
 use Alpha\Journal\Models\User;
-use Alpha\Journal\Notifications\TemplatedEmailNotification;
+use Alpha\Journal\Notifications\TemplatedNotification;
 use Alpha\Journal\Support\Activity;
 use DateTimeInterface;
 use Illuminate\Support\Facades\Notification;
@@ -56,7 +56,7 @@ class ReviewInvitationService
         ]);
 
         if ($rendered !== null) {
-            Notification::send($reviewer, new TemplatedEmailNotification($rendered));
+            Notification::send($reviewer, new TemplatedNotification($rendered, 'review.invitation'));
         }
 
         Activity::log('review.invited', $submission, null, [

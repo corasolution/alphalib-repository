@@ -26,6 +26,7 @@ class DashboardController extends Controller
                 'title' => $currentJournal->title->get($locale, 'en') ?? $currentJournal->path,
             ],
             'queue' => $queue->forUser($currentJournal, $request->user()),
+            'can' => ['manageUsers' => Gate::allows('manageUsers', $currentJournal)],
         ]);
     }
 }

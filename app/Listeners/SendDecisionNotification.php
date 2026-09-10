@@ -4,7 +4,7 @@ namespace Alpha\Journal\Listeners;
 
 use Alpha\Journal\Events\SubmissionStageChanged;
 use Alpha\Journal\Mail\EmailTemplateRenderer;
-use Alpha\Journal\Notifications\TemplatedEmailNotification;
+use Alpha\Journal\Notifications\TemplatedNotification;
 use Alpha\Journal\Support\Activity;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Notification;
@@ -55,7 +55,7 @@ class SendDecisionNotification implements ShouldQueue
             return;
         }
 
-        Notification::send($author, new TemplatedEmailNotification($rendered));
+        Notification::send($author, new TemplatedNotification($rendered, $key));
 
         Activity::log('mail.sent', $submission, $rendered->subject, [
             'template_key' => $key,

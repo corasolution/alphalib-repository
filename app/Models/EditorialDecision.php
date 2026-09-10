@@ -103,8 +103,12 @@ class EditorialDecision extends Model
         return $this->updateGateOpen;
     }
 
+    /**
+     * ImmutableBuilder's update/delete guards, plus EditorialDecisionBuilder's insert guard —
+     * decisions are immutable once made, and an AI code path may not make one at all.
+     */
     public function newEloquentBuilder($query): Builder
     {
-        return new ImmutableBuilder($query);
+        return new EditorialDecisionBuilder($query);
     }
 }

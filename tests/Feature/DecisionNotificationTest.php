@@ -12,7 +12,7 @@ use Alpha\Journal\Models\Site;
 use Alpha\Journal\Models\StageAssignment;
 use Alpha\Journal\Models\Submission;
 use Alpha\Journal\Models\User;
-use Alpha\Journal\Notifications\TemplatedEmailNotification;
+use Alpha\Journal\Notifications\TemplatedNotification;
 use Alpha\Journal\Workflow\SubmissionWorkflow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -67,7 +67,7 @@ class DecisionNotificationTest extends TestCase
 
         $this->workflow->recordDecision($submission, $this->editor, EditorialDecisionType::Accept, 'Great work.');
 
-        Notification::assertSentTo($this->author, TemplatedEmailNotification::class);
+        Notification::assertSentTo($this->author, TemplatedNotification::class);
         $this->assertDatabaseHas('activity_log', [
             'journal_id' => $this->journal->id,
             'subject_type' => $submission->getMorphClass(),
@@ -112,8 +112,8 @@ class DecisionNotificationTest extends TestCase
 
         Notification::assertSentTo(
             $this->author,
-            TemplatedEmailNotification::class,
-            function (TemplatedEmailNotification $notification) {
+            TemplatedNotification::class,
+            function (TemplatedNotification $notification) {
                 $mail = $notification->toMail($this->author);
 
                 return str_contains($mail->subject, 'Decision on your submission');

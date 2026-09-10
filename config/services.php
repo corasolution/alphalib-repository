@@ -75,4 +75,30 @@ return [
         'base_url' => env('DATACITE_BASE_URL', 'https://api.test.datacite.org'),
     ],
 
+    // Outbound integrations. Fallbacks only — the authoritative values are the encrypted ones
+    // a site admin sets in Admin → Notifications (see IntegrationCredentials).
+    'integrations' => [
+        'brevo_smtp_user' => env('BREVO_SMTP_USER'),
+        'brevo_smtp_key' => env('BREVO_SMTP_KEY'),
+        'brevo_host' => env('BREVO_HOST', 'smtp-relay.brevo.com'),
+        'brevo_port' => env('BREVO_PORT', 587),
+        'telegram_bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'telegram_bot_username' => env('TELEGRAM_BOT_USERNAME'),
+        'telegram_webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+    ],
+
+    // AI provider credentials (CLAUDE.md §6). These are FALLBACKS: the authoritative key is the
+    // encrypted one a site admin sets in Admin → AI, and AiCredentials prefers that. Either way a
+    // key being present must never by itself mean a journal is processed — per-journal consent
+    // (journal_settings.ai_enabled) is a separate switch.
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+        'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com'),
+    ],
+
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'base_url' => env('ANTHROPIC_BASE_URL', 'https://api.anthropic.com'),
+    ],
+
 ];

@@ -26,14 +26,13 @@ OJS is **GPL-3.0**. Do **not** copy, port, translate, or paste OJS/PKP source co
 | Reviewer finding | Keyword search + editor's memory | Semantic matching w/ COI graph exclusion |
 | Integrity screening | External plugins, mostly paid | Built-in advisory screening |
 | Multilingual | Full UI/metadata i18n | Same + AI translation + Khmer TTS |
-| Payments (APC) | PayPal / manual | CoraPay Bakong KHQR + card |
 | Target buyer | Global | SEA universities & societies first |
 
 **Beachhead:** Cambodian, Lao, Vietnamese and Thai university journals currently on unmaintained OJS 2.x/3.2 installs. Sell migration + hosting, not software.
 
 **Business model:** open-core. Core platform free to self-host (Apache-2.0 or BSL — decide before first public tag). Corasoft sells hosting, migration, AI credits, DOI registration service, and DOAJ/indexing consulting.
 
-**Non-goals for v1:** plugin gallery/marketplace, theme marketplace, monograph publishing (OMP), preprint server (OPS), subscription/paywall commerce beyond basic APC. Do not build these. Assume open access.
+**Non-goals for v1:** plugin gallery/marketplace, theme marketplace, monograph publishing (OMP), preprint server (OPS), subscription/paywall commerce, APC invoicing/payments. Do not build these. Assume open access.
 
 ---
 
@@ -96,8 +95,7 @@ Site
       ├── ReviewForm
       │    └── ReviewFormElement
       ├── Announcement
-      ├── NavigationMenu / StaticPage
-      └── ApcInvoice            # ← CoraPay
+      └── NavigationMenu / StaticPage
 ```
 
 ### Multilingual metadata
@@ -281,7 +279,6 @@ Plain-language summary, semantic search across the journal's published corpus, r
 | **P3 Migration** | OJS Native XML importer, direct DB reader, URL redirect map, fidelity report CLI | 2–3 wk |
 | **P4 Public site** | SSR frontend, themes, search, accessibility, Khmer typography | 2–3 wk |
 | **P5 AI layer** | A1 → A8 in order. A5 (production assistant) before A3 if you need a demo that sells. | 4–5 wk |
-| **P6 Commerce** | APC invoicing via CoraPay/KHQR, waivers, receipts | 1 wk |
 
 **Do not start P5 before P2 is validated.** An AI-powered journal that Google Scholar cannot index is unsellable; a plain journal that indexes correctly sells today.
 

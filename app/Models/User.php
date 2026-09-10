@@ -33,6 +33,26 @@ class User extends Authenticatable
         'orcid_token_expires_at',
         'orcid_authenticated_at',
         'anonymized_at',
+        'notification_preferences',
+        'telegram_chat_id',
+        'telegram_linked_at',
+        'telegram_link_token',
+        'telegram_link_expires_at',
+    ];
+
+    /**
+     * Mirrors the DB column defaults, the same fix and for the same reason as Journal::$attributes.
+     *
+     * Postgres does not return unspecified columns back into the model on insert, so a freshly
+     * created User has is_site_admin === null in memory until it is re-fetched. That is not
+     * merely untidy: SitePolicy::manage() is typed `: bool`, so a null walked straight into a
+     * TypeError and every CMS route answered 500 instead of 403 for such a user.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_site_admin' => false,
+        'is_suspended' => false,
     ];
 
     /**
@@ -44,6 +64,8 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'orcid_access_token',
+        // A live link token lets whoever holds it attach their Telegram to this account.
+        'telegram_link_token',
     ];
 
     /**
@@ -59,6 +81,9 @@ class User extends Authenticatable
             'is_site_admin' => 'boolean',
             'is_suspended' => 'boolean',
             'suspended_at' => 'datetime',
+            'notification_preferences' => 'array',
+            'telegram_linked_at' => 'datetime',
+            'telegram_link_expires_at' => 'datetime',
             'orcid_access_token' => 'encrypted',
             'orcid_token_expires_at' => 'datetime',
             'orcid_authenticated_at' => 'datetime',

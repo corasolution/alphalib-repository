@@ -7,7 +7,7 @@ use Alpha\Journal\Models\Journal;
 use Alpha\Journal\Models\JournalInvitation;
 use Alpha\Journal\Models\Site;
 use Alpha\Journal\Models\User;
-use Alpha\Journal\Notifications\TemplatedEmailNotification;
+use Alpha\Journal\Notifications\TemplatedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -45,7 +45,7 @@ class InvitationTest extends TestCase
             'email' => 'newreviewer@example.com',
             'role' => JournalRole::Reviewer->value,
         ]);
-        Notification::assertSentOnDemand(TemplatedEmailNotification::class);
+        Notification::assertSentOnDemand(TemplatedNotification::class);
     }
 
     public function test_a_non_manager_cannot_send_invitations(): void

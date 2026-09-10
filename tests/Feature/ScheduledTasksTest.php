@@ -12,7 +12,7 @@ use Alpha\Journal\Models\Site;
 use Alpha\Journal\Models\StageAssignment;
 use Alpha\Journal\Models\Submission;
 use Alpha\Journal\Models\User;
-use Alpha\Journal\Notifications\TemplatedEmailNotification;
+use Alpha\Journal\Notifications\TemplatedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -63,7 +63,7 @@ class ScheduledTasksTest extends TestCase
 
         $this->artisan('journal:send-reviewer-reminders')->assertSuccessful();
 
-        Notification::assertSentTo($this->reviewer, TemplatedEmailNotification::class);
+        Notification::assertSentTo($this->reviewer, TemplatedNotification::class);
         $this->assertNotNull($assignment->fresh()->last_reminder_sent_at);
     }
 
@@ -75,7 +75,7 @@ class ScheduledTasksTest extends TestCase
         $this->artisan('journal:send-reviewer-reminders');
         $this->artisan('journal:send-reviewer-reminders');
 
-        Notification::assertSentToTimes($this->reviewer, TemplatedEmailNotification::class, 1);
+        Notification::assertSentToTimes($this->reviewer, TemplatedNotification::class, 1);
     }
 
     public function test_it_does_not_remind_a_reviewer_whose_due_date_is_far_away(): void
@@ -95,7 +95,7 @@ class ScheduledTasksTest extends TestCase
 
         $this->artisan('journal:send-reviewer-reminders');
 
-        Notification::assertSentTo($this->reviewer, TemplatedEmailNotification::class);
+        Notification::assertSentTo($this->reviewer, TemplatedNotification::class);
         $this->assertNotNull($assignment->fresh()->last_reminder_sent_at);
     }
 
@@ -136,8 +136,8 @@ class ScheduledTasksTest extends TestCase
 
         $this->artisan('journal:escalate-overdue-reviews')->assertSuccessful();
 
-        Notification::assertSentTo($editor, TemplatedEmailNotification::class);
-        Notification::assertNotSentTo($this->reviewer, TemplatedEmailNotification::class);
+        Notification::assertSentTo($editor, TemplatedNotification::class);
+        Notification::assertNotSentTo($this->reviewer, TemplatedNotification::class);
         $this->assertNotNull($assignment->fresh()->editor_escalated_at);
         $this->assertDatabaseHas('activity_log', [
             'subject_id' => $this->submission->id,
@@ -173,7 +173,7 @@ class ScheduledTasksTest extends TestCase
         $this->artisan('journal:escalate-overdue-reviews');
         $this->artisan('journal:escalate-overdue-reviews');
 
-        Notification::assertSentToTimes($editor, TemplatedEmailNotification::class, 1);
+        Notification::assertSentToTimes($editor, TemplatedNotification::class, 1);
     }
 
     public function test_it_alerts_editors_about_an_unclaimed_submission(): void
@@ -190,7 +190,7 @@ class ScheduledTasksTest extends TestCase
 
         $this->artisan('journal:alert-unclaimed-submissions')->assertSuccessful();
 
-        Notification::assertSentTo($editor, TemplatedEmailNotification::class);
+        Notification::assertSentTo($editor, TemplatedNotification::class);
         $this->assertDatabaseHas('activity_log', [
             'subject_id' => $unclaimed->id,
             'action' => 'submission.unclaimed_alert',
@@ -235,7 +235,7 @@ class ScheduledTasksTest extends TestCase
         $this->artisan('journal:alert-unclaimed-submissions');
         $this->artisan('journal:alert-unclaimed-submissions');
 
-        Notification::assertSentToTimes($editor, TemplatedEmailNotification::class, 1);
+        Notification::assertSentToTimes($editor, TemplatedNotification::class, 1);
         $this->assertSame(1, ActivityLog::where('action', 'submission.unclaimed_alert')->count());
     }
 }

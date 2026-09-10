@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Alpha\Journal\Enums\JournalRole;
 use Alpha\Journal\Models\Journal;
+use Alpha\Journal\Models\JournalSetting;
 use Alpha\Journal\Models\Site;
 use Alpha\Journal\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -46,6 +47,16 @@ class DatabaseSeeder extends Seeder
         );
 
         $journal->grantRole($manager, JournalRole::JournalManager);
+
+        // AI is opt-in per journal and ships off (CLAUDE.md §6 guardrail 2). The demo journal
+        // opts in explicitly so the A1 submission pre-fill is visible out of the box — this is a
+        // seeded demo consenting on its own behalf, not a change to the default for real journals.
+        JournalSetting::updateOrCreate(
+            ['journal_id' => $journal->id, 'name' => 'ai_enabled', 'locale' => ''],
+            ['value' => true],
+        );
+
+        $this->call(SiteContentSeeder::class);
 
         $this->command?->info("Seeded site admin: {$admin->email} / journal manager: {$manager->email} (password: password) / journal: /{$journal->path}");
     }

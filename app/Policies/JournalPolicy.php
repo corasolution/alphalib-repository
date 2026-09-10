@@ -48,4 +48,23 @@ class JournalPolicy
     {
         return $user->hasRoleOn($journal, JournalRole::JournalManager);
     }
+
+    /**
+     * Adding and removing people on this journal (CLAUDE.md §4 — roles are per-journal).
+     * Same authority as sending invitations: the Journal Manager runs their own journal.
+     */
+    public function manageUsers(User $user, Journal $journal): bool
+    {
+        return $user->hasRoleOn($journal, JournalRole::JournalManager);
+    }
+
+    /**
+     * Any user already enrolled on this journal in some capacity can start a submission
+     * (CLAUDE.md §13.1) — matches `view` above. A brand-new visitor with no role yet must be
+     * invited or self-register first; there is no anonymous-submission path.
+     */
+    public function createSubmission(User $user, Journal $journal): bool
+    {
+        return $user->journalRoles()->where('journal_id', $journal->id)->exists();
+    }
 }

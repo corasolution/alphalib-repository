@@ -25,6 +25,7 @@ export default function Dashboard({ journals }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+                {/* Site-admin CMS entry points live in the sidebar's CMS group, not here. */}
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">Your journals</h1>
                     <p className="text-muted-foreground text-sm">Pick a journal to see its editorial queue.</p>
@@ -39,7 +40,7 @@ export default function Dashboard({ journals }: Props) {
                     <div className="grid auto-rows-min gap-4 md:grid-cols-2 xl:grid-cols-3">
                         {journals.map((journal) => (
                             <Link key={journal.path} href={route('journal.dashboard', { journal: journal.path })}>
-                                <Card className="h-full transition-colors hover:bg-accent/50">
+                                <Card className="hover:bg-accent/50 h-full transition-colors">
                                     <CardHeader className="flex flex-row items-center justify-between space-y-0">
                                         <CardTitle className="text-base font-medium">{journal.title}</CardTitle>
                                         <ArrowRight className="text-muted-foreground size-4" />

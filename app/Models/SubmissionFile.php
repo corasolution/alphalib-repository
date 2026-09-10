@@ -71,4 +71,32 @@ class SubmissionFile extends Model
             'sha256' => $stored->sha256,
         ]);
     }
+
+    /**
+     * Non-manuscript uploads — "Figures and tables", "Supporting data", "Cover letter" in the
+     * author-facing vocabulary (CLAUDE.md §13.1). Never touches is_current_manuscript, so it
+     * cannot demote the actual manuscript the way storeManuscript() intentionally does.
+     */
+    public static function storeSupporting(
+        Submission $submission,
+        UploadedFile $file,
+        User $uploader,
+        ?SubmissionStage $stage = null,
+    ): self {
+        $stored = app(FileStorage::class)->store($file, "submissions/{$submission->id}");
+
+        return static::create([
+            'submission_id' => $submission->id,
+            'uploaded_by' => $uploader->id,
+            'stage' => ($stage ?? $submission->stage)->value,
+            'version' => 1,
+            'is_current_manuscript' => false,
+            'disk' => $stored->disk,
+            'path' => $stored->path,
+            'original_name' => $stored->originalName,
+            'mime_type' => $stored->mimeType,
+            'size' => $stored->size,
+            'sha256' => $stored->sha256,
+        ]);
+    }
 }

@@ -5,18 +5,16 @@ namespace Alpha\Journal\Http\Controllers\Journal;
 use Alpha\Journal\Enums\JournalRole;
 use Alpha\Journal\Exceptions\InvitationException;
 use Alpha\Journal\Http\Controllers\Controller;
-use Alpha\Journal\Mail\EmailTemplateRenderer;
-use Alpha\Journal\Notifications\TemplatedEmailNotification;
+use Alpha\Journal\Journals\JournalInvitationService;
 use Alpha\Journal\Support\JournalContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class InvitationController extends Controller
 {
-    public function store(Request $request, string $journal, EmailTemplateRenderer $renderer): JsonResponse
+    public function store(Request $request, string $journal, JournalInvitationService $invitations): JsonResponse
     {
         $currentJournal = app(JournalContext::class)->requireJournal();
 
@@ -27,22 +25,12 @@ class InvitationController extends Controller
             'role' => ['required', Rule::enum(JournalRole::class)],
         ]);
 
-        $invitation = $currentJournal->inviteUser($data['email'], JournalRole::from($data['role']), $request->user());
-
-        $locale = $currentJournal->primary_locale;
-        $rendered = $renderer->render($currentJournal, 'journal.invitation', $locale, [
-            'journal_title' => $currentJournal->title->get($locale, 'en') ?? $currentJournal->path,
-            'inviter_name' => $request->user()->name,
-            'role_label' => $invitation->role->label(),
-            'invitation_url' => route('journal.invitations.accept', ['journal' => $currentJournal->path, 'token' => $invitation->token]),
-            'expires_at' => $invitation->expires_at->toFormattedDateString(),
-        ]);
-
-        if ($rendered !== null) {
-            (new AnonymousNotifiable)
-                ->route('mail', $invitation->email)
-                ->notify(new TemplatedEmailNotification($rendered));
-        }
+        $invitation = $invitations->invite(
+            $currentJournal,
+            $data['email'],
+            JournalRole::from($data['role']),
+            $request->user(),
+        );
 
         return response()->json([
             'id' => $invitation->id,

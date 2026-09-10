@@ -19,6 +19,8 @@ export interface NavItem {
     url: string;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    /** Present on a parent item — renders as a collapsible group with these as sub-items. */
+    items?: NavItem[];
 }
 
 export interface SharedData {
@@ -34,6 +36,8 @@ export interface User {
     email: string;
     avatar?: string;
     email_verified_at: string | null;
+    /** The one global role (CLAUDE.md §4) — gates the CMS section in the sidebar. */
+    is_site_admin?: boolean;
     created_at: string;
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
