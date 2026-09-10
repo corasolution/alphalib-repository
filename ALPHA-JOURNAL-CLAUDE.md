@@ -179,6 +179,7 @@ Validate against the OpenAIRE validator before calling it done.
 - Include: DOI, title, contributors w/ ORCID + affiliation ROR, abstract (JATS), publication dates, pages, license (`AccessIndicators`), full-text resource links, and **reference list** (deposited references massively improve discovery).
 - Async deposit queue with status polling and retry. Surface deposit status per article in the editor UI — this is a top OJS complaint.
 - Support DOI patterns: `10.PREFIX/journalPath.vVOL.iISS.aID` configurable per journal.
+- **Partly built — see §14.** Deposit fires automatically on publish and credentials are admin-managed, but there is no per-article deposit status or retry in the editor UI, and no way to deposit an article that was published before the prefix existed.
 
 ### 5.3 DOAJ
 Article upload via DOAJ API v4 on publish. Also produce the DOAJ application metadata bundle (a report the journal manager can hand to DOAJ during application) — this is a real, unmet pain point.
@@ -501,3 +502,44 @@ Khmer labels must be reviewed by a working academic editor, not machine-translat
 Before writing P1 UI, run a 45-minute session with **two real journal editors and two real authors** currently using OJS. Watch them submit and watch them make a decision. Record where they hesitate. Those hesitation points are the spec.
 
 Repeat after P1 with the working build. Do not skip this — the entire product thesis is "OJS but usable," and that claim is only true if it is tested against people who have suffered OJS.
+
+---
+
+## 14. In progress — indexing, picked up next
+
+**Status as of 10 September 2026.** Paused here deliberately; the remaining work is partly blocked on credentials BIU does not have yet.
+
+### What is done
+
+- **Admin → Indexing** (`/admin/indexing`) holds Crossref and DataCite credentials, encrypted in `sites.integration_credentials`, DB-first with `.env` fallback via `IntegrationCredentials`. Resolved by `DepositSettings`.
+- **Live/test endpoint is an explicit switch**, not a config URL. Both agencies run a sandbox that accepts a deposit, answers `submitted`, and registers nothing — an install left on test looks healthy until somebody clicks a DOI months later. Defaults to test. `CROSSREF_DEPOSIT_URL` / `DATACITE_BASE_URL` still win when set, for installs pinned to a mock.
+- **Readiness table** on the same screen: deposit is gated on the journal's `doi_prefix`, so a valid login still deposits nothing without one. That is the failure people hit.
+- **`doaj_api_key` moved to Journal → Settings** — it is per journal, not per install.
+- **"Indexed by" badges cleared.** WorldCat, Google Scholar, ISSN, Crossref and DOI were all displayed while the journal had no ISSN, no prefix and no article with a DOI. Re-add one at a time, only as each becomes true (see `SiteBadge`'s docblock).
+
+### Blocked on BIU, not on code
+
+1. **ISSN** — apply to the National Library of Cambodia. Free. Prerequisite for DOAJ.
+2. **Crossref membership** — annual fee plus roughly $1/DOI. Yields the `10.xxxxx` prefix.
+
+Once both exist it is a five-minute form-fill: prefix into Journal → Settings, login into Admin → Indexing, Test, switch to Live.
+
+### The two gaps to close — this is the actual next task
+
+Both matter because **articles already published will never be deposited**. `DepositToCrossref` fires on the `Publish` decision only, so the three real BIU articles (already at stage `published`) are permanently skipped once a prefix is added later.
+
+Worse, **`PublicationDoiController::update()` and `generate()` only write the `doi` column — they deposit nothing.** So assigning a DOI by hand to an existing article produces a DOI that appears on the article page and in every BibTeX/RIS export and does not resolve. A dead DOI in a citation is worse than no DOI, and it is checkable.
+
+Build:
+
+1. **A per-article "Deposit now" action.** Mints the DOI if missing, deposits properly, surfaces the outcome. Also covers retry — today a failed deposit has no route back. §5.2 already requires "surface deposit status per article in the editor UI"; this is that, and it is still missing.
+2. **A backfill command** — sweep every `published` publication in a journal so existing articles are done in one pass rather than one at a time.
+
+`CrossrefDepositService`, `DepositToCrossrefJob`, `CrossrefXmlBuilder` and `DoiPatternGenerator` all exist and are tested. What is missing is a way to call them outside the publish transition.
+
+### Also still open
+
+- `admin@example.com` / `password` is a live site-admin login on production, and now also opens the screen holding Crossref credentials. Deferred by the user; close before real credentials are entered.
+- **Suspension has no UI.** `User::suspend()` / `reactivate()` exist and are tested, but nothing routes to them — the only caller filters suspended users out of the manager dropdown. There is also no site-wide user list and no admin-driven password reset. Documented as-is in the handbook (§11).
+- Publishing without a galley is still permitted.
+- `lang/km/site.php` is draft, needs a native academic editor (see §13.8). The `/handbook` page body is English only.
