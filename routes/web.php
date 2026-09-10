@@ -10,6 +10,7 @@ use Alpha\Journal\Http\Controllers\DashboardController;
 use Alpha\Journal\Http\Controllers\HeroSlideController;
 use Alpha\Journal\Http\Controllers\LocaleController;
 use Alpha\Journal\Http\Controllers\OaiController;
+use Alpha\Journal\Http\Controllers\SearchController;
 use Alpha\Journal\Http\Controllers\SiteController;
 use Alpha\Journal\Http\Controllers\SitePageController;
 use Alpha\Journal\Http\Controllers\TelegramWebhookController;
@@ -19,6 +20,9 @@ use Illuminate\Support\Facades\Route;
 // Public site. `site.pages.show` is the reader-facing content page — deliberately outside the
 // cms.pages.* admin namespace below, which is what keeps the two from colliding.
 Route::get('/', [SiteController::class, 'home'])->name('home');
+// Reader-facing article search. Public and unauthenticated — this is how research is found.
+Route::get('search', SearchController::class)->name('search');
+
 Route::get('journals', [SiteController::class, 'journals'])->name('site.journals');
 Route::get('pages/{slug}', [SitePageController::class, 'show'])->name('site.pages.show');
 

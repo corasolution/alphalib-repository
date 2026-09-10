@@ -1,7 +1,7 @@
 import { useTranslations } from '@/lib/i18n';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Facebook, Globe, Instagram, Linkedin, LogIn, Menu, Twitter, X, Youtube } from 'lucide-react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { Facebook, Globe, Instagram, Linkedin, LogIn, Menu, Search, Twitter, X, Youtube } from 'lucide-react';
+import { type FormEventHandler, type ReactNode, useEffect, useState } from 'react';
 
 export interface MenuItem {
     label: string;
@@ -78,6 +78,50 @@ function BadgeStrips({ badges, groups }: { badges: Record<string, SiteBadge[]>; 
                 ))}
             </div>
         </section>
+    );
+}
+/**
+ * Search from the header, on every public page.
+ *
+ * Collapses to an icon below lg, where the full field would cost the masthead the room it needs
+ * to stay legible — the icon opens the search page, which has the same field at full size.
+ */
+function HeaderSearch() {
+    const { t } = useTranslations();
+    const [term, setTerm] = useState('');
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        router.get(route('search'), term.trim() === '' ? {} : { q: term.trim() });
+    };
+
+    return (
+        <>
+            <form onSubmit={submit} className="hidden 2xl:block">
+                <label className="sr-only" htmlFor="header-search">
+                    {t('search.title')}
+                </label>
+                <div className="relative">
+                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-white/60" aria-hidden="true" />
+                    <input
+                        id="header-search"
+                        type="search"
+                        value={term}
+                        onChange={(e) => setTerm(e.target.value)}
+                        placeholder={t('search.submit')}
+                        className="font-display w-36 rounded-full border border-white/40 bg-white/10 py-2 pr-3 pl-9 text-sm text-white transition-[width,background-color] placeholder:text-white/60 focus:w-52 focus:bg-white/20 focus:outline-none xl:w-44 xl:focus:w-64"
+                    />
+                </div>
+            </form>
+
+            <Link
+                href={route('search')}
+                aria-label={t('search.title')}
+                className="flex shrink-0 items-center justify-center rounded-full border border-white/40 p-2 text-white transition-colors hover:border-white hover:bg-white/10 2xl:hidden"
+            >
+                <Search className="size-4" />
+            </Link>
+        </>
     );
 }
 /**
@@ -210,6 +254,8 @@ export default function PublicSiteLayout({
                                     </a>
                                 ))}
                             </div>
+
+                            <HeaderSearch />
 
                             {/* Separates where you can go from what you can do. */}
                             {menuItems.length > 0 && <div className="hidden h-6 w-px shrink-0 bg-white/25 xl:block" aria-hidden="true" />}

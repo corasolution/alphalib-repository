@@ -46,6 +46,26 @@ class Publication extends Model
     }
 
     /**
+     * The same double gate, across every enabled journal on the site — what reader-facing search
+     * runs over.
+     *
+     * The enabled check matters here in a way it does not on a journal's own page: a disabled
+     * journal's URL 404s, so its articles are unreachable, and search must not be the back door
+     * that surfaces them anyway.
+     */
+    public function scopePublishedInAnyJournal(Builder $query): Builder
+    {
+        return $query
+            ->where('status', 'published')
+            ->whereHas('submission', fn ($submission) => $submission
+                ->withoutGlobalScope(JournalScope::class)
+                ->where('stage', SubmissionStage::Published->value)
+                ->whereHas('journal', fn ($journal) => $journal
+                    ->withoutGlobalScope(JournalScope::class)
+                    ->where('is_enabled', true)));
+    }
+
+    /**
      * Publications that are genuinely public for this journal (optionally within one issue).
      *
      * The double gate is the point, and it is a security check rather than a tidiness one:

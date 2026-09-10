@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, CheckCircle2, ChevronRight, Clock, Inbox, UserX } from 'lucide-react';
+import { AlertTriangle, BookOpen, CheckCircle2, ChevronRight, Clock, Download, FileText, Inbox, Settings, Users, UserX } from 'lucide-react';
 
 interface JournalActionQueue {
     needsDecision: number;
@@ -113,13 +113,57 @@ export default function JournalDashboard({ journal, queue, can }: Props) {
     const needingAttention = ROWS.filter((row) => queue[row.key] > 0 && row.severity !== 'waiting').length;
     const everythingClear = ROWS.every((row) => queue[row.key] === 0);
 
+    /**
+     * Where an editor goes next. Ordered by how often it is wanted, not alphabetically — the
+     * submissions list is the daily destination, journal settings the once-a-year one.
+     *
+     * The last two are Journal Manager work, so they are absent rather than disabled for anyone
+     * else: a control that exists only to refuse you is worse than no control.
+     */
+    const actions = [
+        {
+            label: 'All submissions',
+            description: 'Every manuscript, at any stage',
+            href: route('journal.submissions.index', { journal: journal.path }),
+            icon: FileText,
+        },
+        {
+            label: 'Issues',
+            description: 'Create issues and assign articles',
+            href: route('journal.issues.index', { journal: journal.path }),
+            icon: BookOpen,
+        },
+        {
+            label: 'Export articles',
+            description: 'Published articles as CSV',
+            href: route('journal.export.articles-csv', { journal: journal.path }),
+            icon: Download,
+        },
+        ...(can.manageUsers
+            ? [
+                  {
+                      label: 'People',
+                      description: 'Editors, reviewers and authors',
+                      href: route('journal.people.index', { journal: journal.path }),
+                      icon: Users,
+                  },
+                  {
+                      label: 'Journal settings',
+                      description: 'Publisher, ISSN and DOI prefix',
+                      href: route('journal.settings.edit', { journal: journal.path }),
+                      icon: Settings,
+                  },
+              ]
+            : []),
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${journal.title} — Dashboard`} />
             <PageContainer>
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">{journal.title}</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{journal.title}</h1>
                         <p className="text-muted-foreground text-sm">
                             {/* Deliberately not a summed total: one submission can sit in several
                                 queues at once, so adding the counts would overstate the workload. */}
@@ -130,7 +174,7 @@ export default function JournalDashboard({ journal, queue, can }: Props) {
                                   : 'Nothing urgent — everything below is just waiting.'}
                         </p>
                     </div>
-                    <Button asChild>
+                    <Button asChild className="shrink-0 self-start">
                         <Link href={route('journal.submissions.create', { journal: journal.path })}>New submission</Link>
                     </Button>
                 </div>
@@ -181,43 +225,36 @@ export default function JournalDashboard({ journal, queue, can }: Props) {
                     </CardContent>
                 </Card>
 
-                <div className="text-muted-foreground text-sm">
-                    <Link
-                        href={route('journal.submissions.index', { journal: journal.path })}
-                        className="text-foreground underline underline-offset-4"
-                    >
-                        View all submissions
-                    </Link>
-                    ,{' '}
-                    <Link href={route('journal.issues.index', { journal: journal.path })} className="text-foreground underline underline-offset-4">
-                        manage issues
-                    </Link>
-                    ,{' '}
-                    <Link
-                        href={route('journal.export.articles-csv', { journal: journal.path })}
-                        className="text-foreground underline underline-offset-4"
-                    >
-                        export published articles
-                    </Link>
-                    {can.manageUsers && (
-                        <>
-                            ,{' '}
-                            <Link
-                                href={route('journal.people.index', { journal: journal.path })}
-                                className="text-foreground underline underline-offset-4"
-                            >
-                                manage people
-                            </Link>
-                            , or edit this journal's{' '}
-                            <Link
-                                href={route('journal.settings.edit', { journal: journal.path })}
-                                className="text-foreground underline underline-offset-4"
-                            >
-                                publisher, ISSN and DOI settings
-                            </Link>
-                        </>
-                    )}
-                    .
+                {/*
+                  Five destinations, previously a single run-on sentence of underlined links —
+                  "View all submissions, manage issues, export published articles, manage people,
+                  or edit this journal's publisher, ISSN and DOI settings." Readable once, but
+                  nothing to aim at and no way to scan for the one you want. Each is now a target
+                  with a name and a line saying what it does.
+                */}
+                <div>
+                    <h2 className="text-muted-foreground mb-3 text-xs font-semibold tracking-wider uppercase">Manage this journal</h2>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {actions.map((action) => {
+                            const Icon = action.icon;
+
+                            return (
+                                <Link
+                                    key={action.label}
+                                    href={action.href}
+                                    className="group bg-card hover:border-primary/50 flex items-start gap-3 rounded-lg border p-4 transition-colors"
+                                >
+                                    <span className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex size-9 shrink-0 items-center justify-center rounded-md transition-colors">
+                                        <Icon className="size-4" />
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className="block text-sm font-medium">{action.label}</span>
+                                        <span className="text-muted-foreground block text-xs leading-relaxed">{action.description}</span>
+                                    </span>
+                                </Link>
+                            );
+                        })}
+                    </div>
                 </div>
             </PageContainer>
         </AppLayout>
