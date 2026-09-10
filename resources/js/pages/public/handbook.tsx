@@ -871,9 +871,17 @@ export default function Handbook({ site, menuItems, socialLinks }: Props) {
                             </p>
                         </Rule>
                         <P>
-                            A user account can also be <B>suspended</B>, which blocks login while leaving all their work in place.
-                            Reactivating restores access.
+                            There is no site-wide list of users. Accounts are managed per journal, in <B>Journal → People</B> (
+                            <a href="#s9">§9</a>) — which is also the only place a role can be granted or withdrawn. An administrator
+                            cannot reset somebody else's password from the interface; the person uses <B>Forgot password</B> themselves.
                         </P>
+                        <Note label="Suspending an account">
+                            <p>
+                                Suspension — blocking a login while leaving all the person's work in place — exists in the platform but
+                                has <B>no screen yet</B>. Until it has one, withdrawing every role in <B>Journal → People</B> is how you
+                                remove somebody's access.
+                            </p>
+                        </Note>
                     </Section>
 
                     {/* ---------- 12 ---------- */}

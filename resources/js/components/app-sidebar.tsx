@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Bell, HardDrive, LayoutGrid, Library, Palette, Sparkles } from 'lucide-react';
+import { Bell, BookOpen, HardDrive, LayoutGrid, Library, Palette, Sparkles } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const dashboardNavItem: NavItem = {
@@ -85,6 +85,27 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
+                {/*
+                  Outside the site-admin gate above on purpose: authors, reviewers and editors
+                  see only "Dashboard" in the main nav, and they are most of who the handbook is
+                  written for. Gating it would hide it from exactly the people who need it.
+
+                  A plain anchor to a new tab rather than an Inertia Link: the handbook is read
+                  *while* doing something — writing a decision, filling in a submission — so
+                  navigating in place would throw that half-finished work away. It is also a
+                  public page, so it leaves the staff layout entirely.
+                */}
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Handbook">
+                            <a href="/handbook" target="_blank" rel="noreferrer">
+                                <BookOpen />
+                                <span>Handbook</span>
+                            </a>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+
                 <NavUser />
             </SidebarFooter>
         </Sidebar>
