@@ -1,7 +1,7 @@
 import { useTranslations } from '@/lib/i18n';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Facebook, Globe, Instagram, Linkedin, LogIn, Menu, Search, Twitter, X, Youtube } from 'lucide-react';
-import { type FormEventHandler, type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 export interface MenuItem {
     label: string;
@@ -83,45 +83,23 @@ function BadgeStrips({ badges, groups }: { badges: Record<string, SiteBadge[]>; 
 /**
  * Search from the header, on every public page.
  *
- * Collapses to an icon below lg, where the full field would cost the masthead the room it needs
- * to stay legible — the icon opens the search page, which has the same field at full size.
+ * An icon at every width, not a field. The row already carries the masthead, five admin-editable
+ * nav labels, the language switch and staff login; an inline field needs ~176px more than the
+ * 1200px content column can hold, so it pushed the whole cluster outside its own container and
+ * clipped staff login into a horizontal scrollbar. The icon opens the search page, which has the
+ * same field at full size — and unlike the field it cannot be broken by a longer menu label.
  */
 function HeaderSearch() {
     const { t } = useTranslations();
-    const [term, setTerm] = useState('');
-
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
-        router.get(route('search'), term.trim() === '' ? {} : { q: term.trim() });
-    };
 
     return (
-        <>
-            <form onSubmit={submit} className="hidden 2xl:block">
-                <label className="sr-only" htmlFor="header-search">
-                    {t('search.title')}
-                </label>
-                <div className="relative">
-                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-white/60" aria-hidden="true" />
-                    <input
-                        id="header-search"
-                        type="search"
-                        value={term}
-                        onChange={(e) => setTerm(e.target.value)}
-                        placeholder={t('search.submit')}
-                        className="font-display w-36 rounded-full border border-white/40 bg-white/10 py-2 pr-3 pl-9 text-sm text-white transition-[width,background-color] placeholder:text-white/60 focus:w-52 focus:bg-white/20 focus:outline-none xl:w-44 xl:focus:w-64"
-                    />
-                </div>
-            </form>
-
-            <Link
-                href={route('search')}
-                aria-label={t('search.title')}
-                className="flex shrink-0 items-center justify-center rounded-full border border-white/40 p-2 text-white transition-colors hover:border-white hover:bg-white/10 2xl:hidden"
-            >
-                <Search className="size-4" />
-            </Link>
-        </>
+        <Link
+            href={route('search')}
+            aria-label={t('search.title')}
+            className="flex shrink-0 items-center justify-center rounded-full border border-white/40 p-2 text-white transition-colors hover:border-white hover:bg-white/10"
+        >
+            <Search className="size-4" />
+        </Link>
     );
 }
 /**
@@ -225,7 +203,7 @@ export default function PublicSiteLayout({
             */}
             <div lang={locale} className="font-body text-site-body flex min-h-screen flex-col bg-white antialiased">
                 <nav className="bg-site-primary sticky top-0 z-50 w-full">
-                    <div className="mx-auto flex h-20 w-full max-w-[1200px] items-center justify-between gap-4 px-6 xl:gap-12">
+                    <div className="mx-auto flex h-20 w-full max-w-[1200px] items-center justify-between gap-4 px-6 xl:max-w-[1320px] xl:gap-12">
                         {/*
                           The masthead never truncates and never abuts the menu: the site's name is
                           the one thing a reader must be able to read, and when it sat flush against

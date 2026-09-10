@@ -250,6 +250,34 @@ class ArticleSearchTest extends TestCase
         $this->get('/search?q=rice&sort=title;DROP+TABLE+publications')->assertSessionHasErrors('sort');
     }
 
+    /**
+     * The bug this guards against shipped to production once already.
+     *
+     * JournalScope denies by default when no journal is in context, and a public search request
+     * has none. The *filters* were opted out explicitly; the eager loads were not — so every
+     * result came back with journal, issue and section null, and each result linked to
+     * "/journal/undefined/article/{id}". The suite stayed green because JournalScope bypasses
+     * entirely under `artisan test`, which is exactly what this config flag turns off.
+     */
+    public function test_results_carry_their_journal_when_the_scope_is_really_enforced(): void
+    {
+        $section = Section::create(['journal_id' => $this->journal->id, 'title' => ['en' => 'Articles'], 'sort_order' => 0]);
+        $article = $this->publish('Scoped Metadata Paper');
+        $article->submission->update(['section_id' => $section->id]);
+        $issueLabel = $this->issue->identification();
+
+        // Flipped only now: with the bypass off even this test's own fixture setup would be
+        // denied. What is under test is the request, not the arranging.
+        config(['journal.scope_console_bypass' => false]);
+
+        $this->get('/search?q=scoped')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('results.data.0.journal.path', 'biu')
+                ->where('results.data.0.journal.title', 'BIU Journal')
+                ->where('results.data.0.section', 'Articles')
+                ->where('results.data.0.issue', $issueLabel));
+    }
     public function test_sections_are_only_offered_for_the_journal_being_filtered(): void
     {
         Section::create(['journal_id' => $this->journal->id, 'title' => ['en' => 'Reviews'], 'sort_order' => 0]);

@@ -34,7 +34,20 @@ class ArticleSearch
     {
         $query = Publication::query()
             ->publishedInAnyJournal()
-            ->with(['contributors', 'submission.journal', 'submission.issue', 'submission.section', 'galleys']);
+            ->with([
+                'contributors',
+                'galleys',
+                // Submission, Issue and Section all carry JournalScope through BelongsToJournal,
+                // and it denies by default when no journal is in context — which is every public
+                // search request. An eager load is a query like any other, so without these opt-
+                // outs the submission resolves to null and the result loses the journal whose
+                // path builds its own link. Shipped once as "/journal/undefined/article/{id}".
+                // (Journal itself is deliberately unscoped, so it needs no opt-out here.)
+                'submission' => fn ($q) => $q->withoutGlobalScope(JournalScope::class),
+                'submission.journal',
+                'submission.issue' => fn ($q) => $q->withoutGlobalScope(JournalScope::class),
+                'submission.section' => fn ($q) => $q->withoutGlobalScope(JournalScope::class),
+            ]);
 
         $terms = trim((string) ($criteria['q'] ?? ''));
 
