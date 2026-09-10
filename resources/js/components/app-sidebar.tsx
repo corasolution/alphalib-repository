@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Bell, BookOpen, HardDrive, LayoutGrid, Library, Palette, Sparkles } from 'lucide-react';
+import { Bell, BookOpen, HardDrive, LayoutGrid, Library, Palette, ScanSearch, Sparkles } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const dashboardNavItem: NavItem = {
@@ -31,6 +31,13 @@ const notificationsNavItem: NavItem = {
     title: 'Notifications',
     url: '/admin/notifications',
     icon: Bell,
+};
+
+/** Deposit credentials for Crossref and DataCite, and the live/test endpoint. Site-admin only. */
+const indexingNavItem: NavItem = {
+    title: 'Indexing',
+    url: '/admin/indexing',
+    icon: ScanSearch,
 };
 
 /** Where uploaded files are kept, and moving them to a bucket. Site-admin only. */
@@ -63,7 +70,7 @@ const cmsNavItem: NavItem = {
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
     const mainNavItems: NavItem[] = auth.user?.is_site_admin
-        ? [dashboardNavItem, journalsNavItem, aiNavItem, notificationsNavItem, storageNavItem, cmsNavItem]
+        ? [dashboardNavItem, journalsNavItem, aiNavItem, indexingNavItem, notificationsNavItem, storageNavItem, cmsNavItem]
         : [dashboardNavItem];
 
     return (

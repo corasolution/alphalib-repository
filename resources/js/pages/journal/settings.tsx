@@ -144,6 +144,27 @@ export default function JournalSettings({ journal, settings, defaultPattern }: P
                         </CardContent>
                     </Card>
 
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>DOAJ</CardTitle>
+                            <CardDescription>
+                                Once this journal has been accepted into the Directory of Open Access Journals, paste the API key from
+                                your DOAJ account here and every article is uploaded automatically when it is published. The key belongs
+                                to the journal, not the installation — each accepted journal has its own DOAJ account.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-2">
+                            <Label htmlFor="doaj_api_key">DOAJ API key</Label>
+                            <Input
+                                id="doaj_api_key"
+                                value={data.doaj_api_key ?? ''}
+                                onChange={(e) => setData('doaj_api_key', e.target.value)}
+                                placeholder="Leave empty until the journal is accepted"
+                                autoComplete="off"
+                            />
+                            <InputError message={errors.doaj_api_key} />
+                        </CardContent>
+                    </Card>
                     <Button type="submit" disabled={processing}>
                         Save settings
                     </Button>

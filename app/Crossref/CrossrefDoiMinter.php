@@ -3,19 +3,22 @@
 namespace Alpha\Journal\Crossref;
 
 use Alpha\Journal\Models\CrossrefDeposit;
+use Alpha\Journal\Support\DepositSettings;
 use Corasoft\AlphaScholar\PersistentIds\DepositReceipt;
 use Corasoft\AlphaScholar\PersistentIds\DoiMinter;
 use Illuminate\Support\Facades\Http;
 
 class CrossrefDoiMinter implements DoiMinter
 {
+    public function __construct(private readonly DepositSettings $settings) {}
+
     public function deposit(string $doi, string $metadataXml): DepositReceipt
     {
         $response = Http::attach('fname', $metadataXml, 'deposit.xml')
-            ->post(config('services.crossref.deposit_url'), [
+            ->post($this->settings->crossrefDepositUrl(), [
                 'operation' => 'doMDUpload',
-                'login_id' => config('services.crossref.username'),
-                'login_passwd' => config('services.crossref.password'),
+                'login_id' => $this->settings->crossrefUsername(),
+                'login_passwd' => $this->settings->crossrefPassword(),
             ]);
 
         if (! $response->successful()) {

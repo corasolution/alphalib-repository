@@ -28,7 +28,7 @@ class JournalSettingsController extends Controller
      * The settings this screen owns. Anything not listed is left untouched by a save, so the
      * workflow timings and the AI consent flag cannot be clobbered from here.
      */
-    private const FIELDS = ['publisher', 'issn_online', 'issn_print', 'doi_prefix', 'doi_pattern'];
+    private const FIELDS = ['publisher', 'issn_online', 'issn_print', 'doi_prefix', 'doi_pattern', 'doaj_api_key'];
 
     public function edit(): Response
     {
@@ -62,6 +62,8 @@ class JournalSettingsController extends Controller
             // A DOI prefix is always "10." followed by a registrant code.
             'doi_prefix' => ['nullable', 'string', 'regex:/^10\.\d{4,9}$/'],
             'doi_pattern' => ['nullable', 'string', 'max:255'],
+            // Per journal, not per installation: each accepted journal has its own DOAJ account.
+            'doaj_api_key' => ['nullable', 'string', 'max:255'],
         ], [
             'issn_online.regex' => 'An ISSN looks like 2789-1234 — eight digits, hyphenated, with X allowed as the last character.',
             'issn_print.regex' => 'An ISSN looks like 2789-1234 — eight digits, hyphenated, with X allowed as the last character.',

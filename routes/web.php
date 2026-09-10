@@ -3,6 +3,7 @@
 use Alpha\Journal\Http\Controllers\Admin\AiController as AdminAiController;
 use Alpha\Journal\Http\Controllers\Admin\JournalController as AdminJournalController;
 use Alpha\Journal\Http\Controllers\Admin\NotificationSettingsController as AdminNotificationSettingsController;
+use Alpha\Journal\Http\Controllers\Admin\IndexingController as AdminIndexingController;
 use Alpha\Journal\Http\Controllers\Admin\StorageController as AdminStorageController;
 use Alpha\Journal\Http\Controllers\BoardController;
 use Alpha\Journal\Http\Controllers\CmsController;
@@ -98,6 +99,12 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::put('ai/key', [AdminAiController::class, 'updateKey'])->name('ai.key.update');
     Route::post('ai/test', [AdminAiController::class, 'test'])->name('ai.test');
     Route::put('ai/switch', [AdminAiController::class, 'updateSwitch'])->name('ai.switch');
+
+    // Deposit credentials for Crossref and DataCite, and the live/test endpoint switch.
+    Route::get('indexing', [AdminIndexingController::class, 'index'])->name('indexing.index');
+    Route::put('indexing', [AdminIndexingController::class, 'update'])->name('indexing.update');
+    Route::delete('indexing/secret', [AdminIndexingController::class, 'forget'])->name('indexing.forget');
+    Route::post('indexing/test', [AdminIndexingController::class, 'test'])->name('indexing.test');
 
     // Where uploaded files live, and moving them from the local disk to a bucket.
     Route::get('storage', [AdminStorageController::class, 'index'])->name('storage.index');

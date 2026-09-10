@@ -828,6 +828,29 @@ export default function Handbook({ site, menuItems, socialLinks }: Props) {
                             their manuscript could not be read — which blames a good file for a configuration problem.
                         </P>
 
+                        <H3>Indexing</H3>
+                        <P>
+                            Credentials for depositing published articles to <B>Crossref</B> and <B>DataCite</B>. Deposit is automatic:
+                            when an editor publishes an article it is sent, with no further action. It only happens for a journal that
+                            has a <B>DOI prefix</B> in its own settings (<a href="#s10">§10</a>), and the screen lists every journal with
+                            whether it is ready.
+                        </P>
+                        <Rule label="Test and live are not the same endpoint">
+                            <p>
+                                Both agencies run a sandbox that accepts a deposit, answers “submitted”, and registers nothing. An
+                                installation left on <B>Test</B> looks healthy indefinitely — the failure only shows up when somebody
+                                clicks a DOI months later and it does not resolve. New installations start on Test on purpose; move the
+                                switch to <B>Live</B> only when you intend real registrations.
+                            </p>
+                        </Rule>
+                        <P>
+                            Use <B>Test credentials</B> after entering a login. Leaving the password box blank keeps the password already
+                            saved, so you can correct the depositor email without wiping the credential.
+                        </P>
+                        <P>
+                            The same screen shows the <B>OAI-PMH</B> address. Services that harvest rather than receive deposits —
+                            WorldCat, BASE, CORE, OpenAIRE — need only that address, and it works with no credentials at all.
+                        </P>
                         <H3>Notifications</H3>
                         <P>
                             How the platform delivers messages. Configure email and, optionally, a Telegram bot. Both have a test action —

@@ -40,9 +40,14 @@ return [
     'crossref' => [
         'username' => env('CROSSREF_USERNAME'),
         'password' => env('CROSSREF_PASSWORD'),
-        'depositor_name' => env('CROSSREF_DEPOSITOR_NAME', 'Alpha Journal'),
+        // No default: an unset value must fall through to the site title in DepositSettings,
+        // otherwise every deposit is labelled with the starter kit's name instead of the publisher.
+        'depositor_name' => env('CROSSREF_DEPOSITOR_NAME'),
         'depositor_email' => env('CROSSREF_DEPOSITOR_EMAIL'),
         'deposit_url' => env('CROSSREF_DEPOSIT_URL', 'https://test.crossref.org/servlet/deposit'),
+        // Set only when an install pins its own endpoint (a mock, a staging host). Null means the
+        // live/test switch in Admin → Indexing decides — see DepositSettings.
+        'deposit_url_override' => env('CROSSREF_DEPOSIT_URL'),
     ],
 
     // ORCID OAuth "connect your account" flow + work-push API (CLAUDE.md §5.5). Defaults point at
@@ -73,6 +78,7 @@ return [
         'username' => env('DATACITE_USERNAME'),
         'password' => env('DATACITE_PASSWORD'),
         'base_url' => env('DATACITE_BASE_URL', 'https://api.test.datacite.org'),
+        'base_url_override' => env('DATACITE_BASE_URL'),
     ],
 
     // Outbound integrations. Fallbacks only — the authoritative values are the encrypted ones
@@ -85,6 +91,16 @@ return [
         'telegram_bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'telegram_bot_username' => env('TELEGRAM_BOT_USERNAME'),
         'telegram_webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+
+        // Deposit credentials. Same two-source contract as the rest of this block: what a
+        // site admin saved in Admin → Indexing wins, these .env values are the fallback so an
+        // existing install keeps depositing without anyone visiting a screen.
+        'crossref_username' => env('CROSSREF_USERNAME'),
+        'crossref_password' => env('CROSSREF_PASSWORD'),
+        'crossref_depositor_name' => env('CROSSREF_DEPOSITOR_NAME'),
+        'crossref_depositor_email' => env('CROSSREF_DEPOSITOR_EMAIL'),
+        'datacite_username' => env('DATACITE_USERNAME'),
+        'datacite_password' => env('DATACITE_PASSWORD'),
     ],
 
     // AI provider credentials (CLAUDE.md §6). These are FALLBACKS: the authoritative key is the

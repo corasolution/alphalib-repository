@@ -3,6 +3,7 @@
 namespace Alpha\Journal\DataCite;
 
 use Alpha\Journal\Models\DataciteDeposit;
+use Alpha\Journal\Support\DepositSettings;
 use Corasoft\AlphaScholar\PersistentIds\DepositReceipt;
 use Corasoft\AlphaScholar\PersistentIds\DoiMinter;
 use Illuminate\Support\Facades\Http;
@@ -17,13 +18,16 @@ use Illuminate\Support\Facades\Http;
  */
 class DataCiteDoiMinter implements DoiMinter
 {
-    public function deposit(string $doi, string $metadataXml): DepositReceipt
+    
+    public function __construct(private readonly DepositSettings $settings) {}
+
+public function deposit(string $doi, string $metadataXml): DepositReceipt
     {
         $response = Http::withBasicAuth(
-            config('services.datacite.username') ?? '',
-            config('services.datacite.password') ?? ''
+            $this->settings->dataciteUsername() ?? '',
+            $this->settings->datacitePassword() ?? ''
         )->withHeaders(['Content-Type' => 'application/vnd.api+json'])
-            ->post(rtrim(config('services.datacite.base_url'), '/').'/dois', [
+            ->post(rtrim($this->settings->dataciteBaseUrl(), '/').'/dois', [
                 'data' => [
                     'type' => 'dois',
                     'attributes' => [

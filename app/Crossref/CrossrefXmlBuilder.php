@@ -3,6 +3,7 @@
 namespace Alpha\Journal\Crossref;
 
 use Alpha\Journal\Models\Publication;
+use Alpha\Journal\Support\DepositSettings;
 use DOMDocument;
 use DOMElement;
 use Illuminate\Support\Str;
@@ -19,7 +20,10 @@ use Illuminate\Support\Str;
  */
 class CrossrefXmlBuilder
 {
-    public function build(Publication $publication, string $doi): string
+    
+    public function __construct(private readonly DepositSettings $settings) {}
+
+public function build(Publication $publication, string $doi): string
     {
         $submission = $publication->submission;
         $journal = $submission->journal;
@@ -61,8 +65,8 @@ class CrossrefXmlBuilder
         $head->appendChild($this->el($doc, 'timestamp', (string) now()->format('YmdHis')));
 
         $depositor = $doc->createElement('depositor');
-        $depositor->appendChild($this->el($doc, 'depositor_name', config('services.crossref.depositor_name') ?? 'Alpha Journal'));
-        $depositor->appendChild($this->el($doc, 'email_address', config('services.crossref.depositor_email') ?? 'admin@example.com'));
+        $depositor->appendChild($this->el($doc, 'depositor_name', $this->settings->crossrefDepositorName()));
+        $depositor->appendChild($this->el($doc, 'email_address', $this->settings->crossrefDepositorEmail() ?? 'admin@example.com'));
         $head->appendChild($depositor);
 
         $head->appendChild($this->el($doc, 'registrant', $journal->title->get($journal->primary_locale, 'en') ?? $journal->path));
