@@ -377,6 +377,16 @@ export default function PublicSiteLayout({
                                 <h2 className="font-display text-sm font-semibold tracking-wider text-white uppercase">{t('footer.participate')}</h2>
                                 <ul className="mt-4 space-y-2.5 text-sm">
                                     <li>
+                                        {/*
+                                          Sits above "register" on purpose: somebody deciding whether to submit here
+                                          should be able to read what submitting involves before being asked to make
+                                          an account.
+                                        */}
+                                        <Link href="/handbook" className="text-site-accent transition-colors hover:text-white">
+                                            {t('footer.handbook')}
+                                        </Link>
+                                    </li>
+                                    <li>
                                         <Link href="/register" className="text-site-accent transition-colors hover:text-white">
                                             {t('footer.register_to_submit')}
                                         </Link>

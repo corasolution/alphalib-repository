@@ -10,6 +10,7 @@ use Alpha\Journal\Http\Controllers\DashboardController;
 use Alpha\Journal\Http\Controllers\HeroSlideController;
 use Alpha\Journal\Http\Controllers\LocaleController;
 use Alpha\Journal\Http\Controllers\OaiController;
+use Alpha\Journal\Http\Controllers\HandbookController;
 use Alpha\Journal\Http\Controllers\SearchController;
 use Alpha\Journal\Http\Controllers\SiteController;
 use Alpha\Journal\Http\Controllers\SitePageController;
@@ -22,6 +23,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [SiteController::class, 'home'])->name('home');
 // Reader-facing article search. Public and unauthenticated — this is how research is found.
 Route::get('search', SearchController::class)->name('search');
+
+// How the platform works, for authors, reviewers, editors and administrators. Public so that
+// somebody can read what submitting involves before they have an account.
+Route::get('handbook', HandbookController::class)->name('handbook');
 
 Route::get('journals', [SiteController::class, 'journals'])->name('site.journals');
 Route::get('pages/{slug}', [SitePageController::class, 'show'])->name('site.pages.show');

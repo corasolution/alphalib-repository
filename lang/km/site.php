@@ -77,6 +77,7 @@ return [
         'tools' => 'ឧបករណ៍',
         'explore' => 'ស្វែងរក',
         'participate' => 'ចូលរួម',
+        'handbook' => 'សៀវភៅណែនាំ',
         'register_to_submit' => 'ចុះឈ្មោះដើម្បីដាក់ស្នើ',
         'staff_login' => 'ចូលសម្រាប់បុគ្គលិក',
         'oai' => 'ចំណុចប្រទាក់ OAI-PMH',

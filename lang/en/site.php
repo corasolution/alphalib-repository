@@ -71,6 +71,7 @@ return [
         'tools' => 'Tools',
         'explore' => 'Explore',
         'participate' => 'Participate',
+        'handbook' => 'Handbook',
         'register_to_submit' => 'Register to submit',
         'staff_login' => 'Staff login',
         'oai' => 'OAI-PMH endpoint',
