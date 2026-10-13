@@ -622,11 +622,23 @@ export default function Handbook({ site, menuItems, socialLinks }: Props) {
                             ]}
                         />
 
-                        <Note label="Two-person approval">
+                        <H3>Two-person approval and final sign-off</H3>
+                        <P>
+                            A journal can require that <B>Accept</B> and <B>Decline</B> are countersigned. The first editor's decision is
+                            recorded and held — the submission does not move — until a second person confirms it. The decision shows as{' '}
+                            <B>Awaiting countersign</B> on the submission until then. It is off unless a journal manager turns it on.
+                        </P>
+                        <P>
+                            By default any second editor can confirm. A journal whose acceptances are the editor-in-chief's call rather
+                            than any editor's can reserve that confirmation for one role, in{' '}
+                            <B>Journal → Settings → Final approval</B>. Proposing stays open to anyone with decision authority; only the
+                            confirmation narrows.
+                        </P>
+                        <Note label="Nobody signs off their own decision">
                             <p>
-                                A journal can require that <B>Accept</B> and <B>Decline</B> are countersigned by a second editor. When
-                                this is switched on, the first editor's decision is recorded and held until a second editor confirms it.
-                                It is off unless a journal manager turns it on.
+                                This holds even for the named approver. So if you reserve final approval for a role, make sure more than
+                                one person holds it — a decision proposed by its only holder can never be confirmed, and the submission
+                                will sit at <B>Awaiting countersign</B> indefinitely.
                             </p>
                         </Note>
 

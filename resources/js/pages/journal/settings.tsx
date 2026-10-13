@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
@@ -14,10 +15,12 @@ interface Props {
     journal: { path: string; title: string };
     settings: Record<string, string>;
     flags: Record<string, boolean>;
+    dualApproval: boolean;
+    approverRoles: { value: string; label: string }[];
     defaultPattern: string;
 }
 
-export default function JournalSettings({ journal, settings, flags, defaultPattern }: Props) {
+export default function JournalSettings({ journal, settings, flags, dualApproval, approverRoles, defaultPattern }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: journal.title, href: route('journal.dashboard', { journal: journal.path }) },
         { title: 'Settings', href: '#' },
@@ -186,6 +189,42 @@ export default function JournalSettings({ journal, settings, flags, defaultPatte
                                     </span>
                                 </span>
                             </label>
+
+                            <div className="mt-5 grid gap-2 border-t pt-4">
+                                <Label htmlFor="final_approval_role">Final approval</Label>
+                                <Select
+                                    value={text('final_approval_role') || 'any'}
+                                    onValueChange={(value) => setData('final_approval_role', value === 'any' ? '' : value)}
+                                >
+                                    <SelectTrigger id="final_approval_role" className="max-w-sm">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="any">Any second editor</SelectItem>
+                                        {approverRoles.map((role) => (
+                                            <SelectItem key={role.value} value={role.value}>
+                                                {role.label} only
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-muted-foreground text-sm">
+                                    {dualApproval ? (
+                                        <>
+                                            Accept and decline are held until a second person confirms them. Naming a role here makes that
+                                            confirmation theirs alone — for a journal where acceptance is the editor-in-chief’s call
+                                            rather than any editor’s. Make sure more than one person holds the role, or a decision its
+                                            only holder proposed can never be confirmed.
+                                        </>
+                                    ) : (
+                                        <>
+                                            This takes effect only while two-person approval is on, which it currently is not. Turn on{' '}
+                                            <span className="font-medium">require_dual_approval</span> for this journal to use it.
+                                        </>
+                                    )}
+                                </p>
+                                <InputError message={errors.final_approval_role} />
+                            </div>
                         </CardContent>
                     </Card>
                     <Card>

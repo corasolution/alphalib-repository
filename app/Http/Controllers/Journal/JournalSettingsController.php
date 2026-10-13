@@ -2,12 +2,14 @@
 
 namespace Alpha\Journal\Http\Controllers\Journal;
 
+use Alpha\Journal\Enums\JournalRole;
 use Alpha\Journal\Http\Controllers\Controller;
 use Alpha\Journal\Models\JournalSetting;
 use Alpha\Journal\Support\JournalContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,7 +30,10 @@ class JournalSettingsController extends Controller
      * The settings this screen owns. Anything not listed is left untouched by a save, so the
      * workflow timings and the AI consent flag cannot be clobbered from here.
      */
-    private const FIELDS = ['publisher', 'issn_online', 'issn_print', 'doi_prefix', 'doi_pattern', 'doaj_api_key'];
+    private const FIELDS = [
+        'publisher', 'issn_online', 'issn_print', 'doi_prefix', 'doi_pattern', 'doaj_api_key',
+        'final_approval_role',
+    ];
 
     /** Settings stored as booleans rather than strings, so an unchecked box persists as false. */
     private const FLAGS = ['use_screening_stage', 'require_plagiarism_check'];
@@ -46,6 +51,11 @@ class JournalSettingsController extends Controller
             ],
             'settings' => collect(self::FIELDS)
                 ->mapWithKeys(fn (string $field) => [$field => (string) ($journal->setting($field) ?? '')]),
+            'dualApproval' => (bool) $journal->setting('require_dual_approval', false),
+            'approverRoles' => [
+                ['value' => JournalRole::Editor->value, 'label' => JournalRole::Editor->label()],
+                ['value' => JournalRole::JournalManager->value, 'label' => JournalRole::JournalManager->label()],
+            ],
             'flags' => collect(self::FLAGS)
                 ->mapWithKeys(fn (string $flag) => [$flag => (bool) $journal->setting($flag, false)]),
             // Shown beside the pattern field so an editor can see what it produces before saving.
@@ -71,6 +81,9 @@ class JournalSettingsController extends Controller
             'doaj_api_key' => ['nullable', 'string', 'max:255'],
             'use_screening_stage' => ['boolean'],
             'require_plagiarism_check' => ['boolean'],
+            // Only the two roles that carry journal-wide authority; a Section or Guest Editor
+            // signing off the journal's own acceptances would defeat the point of naming one.
+            'final_approval_role' => ['nullable', Rule::in([JournalRole::Editor->value, JournalRole::JournalManager->value])],
         ], [
             'issn_online.regex' => 'An ISSN looks like 2789-1234 — eight digits, hyphenated, with X allowed as the last character.',
             'issn_print.regex' => 'An ISSN looks like 2789-1234 — eight digits, hyphenated, with X allowed as the last character.',

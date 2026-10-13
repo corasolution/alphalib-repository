@@ -153,6 +153,7 @@ class SubmissionWorkflow
             ->first();
 
         if ($pending) {
+            $this->guardFinalApprover($submission, $actor);
             $pending->countersign($actor);
             $this->applyTransition($submission, $decision, $toStage, $actor, $pending);
 
@@ -406,6 +407,46 @@ class SubmissionWorkflow
             "{$actor->name} has no editorial role on this journal, so they cannot record decisions "
             .'on it. Grant an Editor role in Journal → People, or ask an assigned editor to decide.'
         );
+    }
+
+    /**
+     * Who is allowed to give the final sign-off, when the journal names someone.
+     *
+     * Dual approval on its own only says "a second editor" — which is right for a journal where
+     * the editors are peers, and wrong for one with a masthead, where acceptance is the
+     * editor-in-chief's call and nobody else's. Setting final_approval_role turns the countersign
+     * into that person's decision. Proposing stays open to anyone with decision authority; it is
+     * only the confirmation that narrows.
+     *
+     * A journal that names a role nobody holds, or whose only holder is the editor who proposed
+     * the decision, has a decision that cannot complete. That is a staffing problem the journal
+     * can see and fix in People or Settings, which is why this fails closed rather than quietly
+     * letting anyone through — an approval control that degrades to "anyone" under
+     * misconfiguration is not a control.
+     */
+    private function guardFinalApprover(Submission $submission, User $actor): void
+    {
+        $required = $submission->journal->setting('final_approval_role');
+
+        if (blank($required)) {
+            return;
+        }
+
+        $role = JournalRole::tryFrom($required);
+
+        if ($role === null) {
+            throw new WorkflowAuthorizationException(
+                "This journal's final approver is set to [{$required}], which is not a role. "
+                .'Fix it in Journal → Settings before this decision can be completed.'
+            );
+        }
+
+        if (! $actor->hasRoleOn($submission->journal, $role)) {
+            throw new WorkflowAuthorizationException(
+                "This journal reserves final approval for the {$role->label()}. "
+                ."{$actor->name} cannot countersign this decision."
+            );
+        }
     }
 
     private function requiresDualApproval(Submission $submission, EditorialDecisionType $decision): bool
