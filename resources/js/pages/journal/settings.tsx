@@ -2,6 +2,7 @@ import InputError from '@/components/input-error';
 import PageContainer from '@/components/page-container';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
@@ -12,16 +13,17 @@ import { FormEventHandler } from 'react';
 interface Props {
     journal: { path: string; title: string };
     settings: Record<string, string>;
+    flags: Record<string, boolean>;
     defaultPattern: string;
 }
 
-export default function JournalSettings({ journal, settings, defaultPattern }: Props) {
+export default function JournalSettings({ journal, settings, flags, defaultPattern }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: journal.title, href: route('journal.dashboard', { journal: journal.path }) },
         { title: 'Settings', href: '#' },
     ];
 
-    const form = useForm<Record<string, string>>({ ...settings });
+    const form = useForm<Record<string, string | boolean>>({ ...settings, ...flags });
     const { data, setData, processing, errors } = form;
 
     const submit: FormEventHandler = (e) => {
@@ -29,9 +31,12 @@ export default function JournalSettings({ journal, settings, defaultPattern }: P
         form.put(route('journal.settings.update', { journal: journal.path }), { preserveScroll: true });
     };
 
+    /** The form holds one boolean among the strings; this keeps the text fields typed as text. */
+    const text = (key: string) => String(data[key] ?? '');
+
     // What the pattern will actually produce, so nobody has to save and publish to find out.
-    const preview = (data.doi_pattern || defaultPattern)
-        .replace('{prefix}', data.doi_prefix || '10.XXXX')
+    const preview = (text('doi_pattern') || defaultPattern)
+        .replace('{prefix}', text('doi_prefix') || '10.XXXX')
         .replace('{journalPath}', journal.path)
         .replace('{volume}', '1')
         .replace('{issue}', '1')
@@ -60,7 +65,7 @@ export default function JournalSettings({ journal, settings, defaultPattern }: P
                                 <Label htmlFor="publisher">Publisher</Label>
                                 <Input
                                     id="publisher"
-                                    value={data.publisher ?? ''}
+                                    value={text('publisher')}
                                     onChange={(e) => setData('publisher', e.target.value)}
                                     placeholder="BELTEI International University"
                                 />
@@ -72,7 +77,7 @@ export default function JournalSettings({ journal, settings, defaultPattern }: P
                                 <Label htmlFor="issn_online">ISSN (online)</Label>
                                 <Input
                                     id="issn_online"
-                                    value={data.issn_online ?? ''}
+                                    value={text('issn_online')}
                                     onChange={(e) => setData('issn_online', e.target.value)}
                                     placeholder="2789-1234"
                                     className="font-mono"
@@ -85,7 +90,7 @@ export default function JournalSettings({ journal, settings, defaultPattern }: P
                                 <Label htmlFor="issn_print">ISSN (print)</Label>
                                 <Input
                                     id="issn_print"
-                                    value={data.issn_print ?? ''}
+                                    value={text('issn_print')}
                                     onChange={(e) => setData('issn_print', e.target.value)}
                                     placeholder="2789-5678"
                                     className="font-mono"
@@ -109,7 +114,7 @@ export default function JournalSettings({ journal, settings, defaultPattern }: P
                                 <Label htmlFor="doi_prefix">DOI prefix</Label>
                                 <Input
                                     id="doi_prefix"
-                                    value={data.doi_prefix ?? ''}
+                                    value={text('doi_prefix')}
                                     onChange={(e) => setData('doi_prefix', e.target.value)}
                                     placeholder="10.5555"
                                     className="font-mono"
@@ -122,7 +127,7 @@ export default function JournalSettings({ journal, settings, defaultPattern }: P
                                 <Label htmlFor="doi_pattern">DOI pattern</Label>
                                 <Input
                                     id="doi_pattern"
-                                    value={data.doi_pattern ?? ''}
+                                    value={text('doi_pattern')}
                                     onChange={(e) => setData('doi_pattern', e.target.value)}
                                     placeholder={defaultPattern}
                                     className="font-mono text-sm"
@@ -146,6 +151,29 @@ export default function JournalSettings({ journal, settings, defaultPattern }: P
 
                     <Card>
                         <CardHeader>
+                            <CardTitle>Workflow</CardTitle>
+                            <CardDescription>How a manuscript travels from submission to peer review.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <label className="flex items-start gap-3 text-sm">
+                                <Checkbox
+                                    checked={Boolean(data.use_screening_stage)}
+                                    onCheckedChange={(checked) => setData('use_screening_stage', checked === true)}
+                                    className="mt-0.5"
+                                />
+                                <span>
+                                    <span className="font-medium">Screen before peer review</span>
+                                    <span className="text-muted-foreground mt-1 block">
+                                        Adds a Screening stage between submission and review, for the editor-in-chief’s first look and
+                                        the technical and format check. With this on, a manuscript reaches review through screening and
+                                        cannot be sent around it. Leave it off and submissions go straight to review as before.
+                                    </span>
+                                </span>
+                            </label>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
                             <CardTitle>DOAJ</CardTitle>
                             <CardDescription>
                                 Once this journal has been accepted into the Directory of Open Access Journals, paste the API key from
@@ -157,7 +185,7 @@ export default function JournalSettings({ journal, settings, defaultPattern }: P
                             <Label htmlFor="doaj_api_key">DOAJ API key</Label>
                             <Input
                                 id="doaj_api_key"
-                                value={data.doaj_api_key ?? ''}
+                                value={text('doaj_api_key')}
                                 onChange={(e) => setData('doaj_api_key', e.target.value)}
                                 placeholder="Leave empty until the journal is accepted"
                                 autoComplete="off"

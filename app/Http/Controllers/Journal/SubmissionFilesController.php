@@ -32,6 +32,14 @@ class SubmissionFilesController extends Controller
 
         SubmissionFile::{$store}($submission, $request->file('file'), $request->user());
 
+        // A returned manuscript comes back the moment a new version lands. Only a replacement
+        // manuscript counts — a supporting file is an addition, not an answer to what the editor
+        // asked for, and clearing on one would drop the submission out of the editor's "with the
+        // author" list while the correction was still outstanding.
+        if ($submission->returned_to_author_at !== null && ($data['as_manuscript'] ?? true)) {
+            $submission->update(['returned_to_author_at' => null]);
+        }
+
         return back()->with('success', 'File uploaded.');
     }
 }

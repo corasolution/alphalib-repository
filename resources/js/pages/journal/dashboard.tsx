@@ -5,10 +5,11 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, BookOpen, CheckCircle2, ChevronRight, Clock, Download, FileText, Inbox, Settings, Users, UserX } from 'lucide-react';
+import { AlertTriangle, BookOpen, CheckCircle2, ChevronRight, Clock, Download, FileText, Inbox, Settings, Undo2, Users, UserX } from 'lucide-react';
 
 interface JournalActionQueue {
     needsDecision: number;
+    withAuthor: number;
     reviewsOverdue: number;
     awaitingReviewerResponse: number;
     noEditorAssigned: number;
@@ -63,6 +64,14 @@ const ROWS: QueueRow[] = [
         description: 'Submissions at a stage that needs an editorial decision.',
         icon: Inbox,
         severity: 'actionable',
+    },
+    {
+        key: 'withAuthor',
+        filter: 'with_author',
+        label: 'With the author',
+        description: 'Returned for corrections — waiting on the author, not on you.',
+        icon: Undo2,
+        severity: 'waiting',
     },
     {
         key: 'readyToPublish',

@@ -58,6 +58,7 @@ class SubmissionController extends Controller
                 'id' => $model->id,
                 'stage' => $model->stage->value,
                 'stageLabel' => $model->stage->label(),
+                'returnedToAuthorAt' => $model->returned_to_author_at?->toIso8601String(),
                 'reviewType' => $model->review_type->value,
                 'submittedAt' => $model->submitted_at,
                 'section' => $model->section?->title?->get($model->journal->primary_locale, 'en'),
@@ -180,7 +181,7 @@ class SubmissionController extends Controller
                     ->values()
                 : [],
             'legalDecisions' => Gate::allows('recordDecision', $model)
-                ? collect($workflow->legalDecisionsFrom($model->stage))
+                ? collect($workflow->legalDecisionsFrom($model))
                     ->when(
                         ! Gate::allows('publish', $model),
                         fn ($decisions) => $decisions->reject(fn ($decision) => $decision->requiresPublishAuthority()),

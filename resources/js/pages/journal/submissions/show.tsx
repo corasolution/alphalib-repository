@@ -107,6 +107,7 @@ interface Props {
         id: number;
         stage: string;
         stageLabel: string;
+        returnedToAuthorAt: string | null;
         reviewType: string;
         submittedAt: string | null;
         section: string | null;
@@ -638,7 +639,20 @@ export default function SubmissionShow({
                         <h1 className="text-2xl font-semibold tracking-tight">Submission #{submission.id}</h1>
                         <p className="text-muted-foreground text-sm">{submission.section ?? 'No section assigned'}</p>
                     </div>
-                    <Badge variant="secondary">{submission.stageLabel}</Badge>
+                    <div className="flex items-center gap-2">
+                        {/* Custody first: whose move it is matters more to whoever opened this page
+                            than which stage it sits at. */}
+                        {submission.returnedToAuthorAt && (
+                            <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-900">
+                                With the author since{' '}
+                                {new Date(submission.returnedToAuthorAt).toLocaleDateString('en-GB', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                })}
+                            </Badge>
+                        )}
+                        <Badge variant="secondary">{submission.stageLabel}</Badge>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)]">

@@ -30,6 +30,9 @@ class JournalSettingsController extends Controller
      */
     private const FIELDS = ['publisher', 'issn_online', 'issn_print', 'doi_prefix', 'doi_pattern', 'doaj_api_key'];
 
+    /** Settings stored as booleans rather than strings, so an unchecked box persists as false. */
+    private const FLAGS = ['use_screening_stage'];
+
     public function edit(): Response
     {
         $journal = app(JournalContext::class)->requireJournal();
@@ -43,6 +46,8 @@ class JournalSettingsController extends Controller
             ],
             'settings' => collect(self::FIELDS)
                 ->mapWithKeys(fn (string $field) => [$field => (string) ($journal->setting($field) ?? '')]),
+            'flags' => collect(self::FLAGS)
+                ->mapWithKeys(fn (string $flag) => [$flag => (bool) $journal->setting($flag, false)]),
             // Shown beside the pattern field so an editor can see what it produces before saving.
             'defaultPattern' => '{prefix}/{journalPath}.v{volume}.i{issue}.a{articleId}',
         ]);
@@ -64,6 +69,7 @@ class JournalSettingsController extends Controller
             'doi_pattern' => ['nullable', 'string', 'max:255'],
             // Per journal, not per installation: each accepted journal has its own DOAJ account.
             'doaj_api_key' => ['nullable', 'string', 'max:255'],
+            'use_screening_stage' => ['boolean'],
         ], [
             'issn_online.regex' => 'An ISSN looks like 2789-1234 — eight digits, hyphenated, with X allowed as the last character.',
             'issn_print.regex' => 'An ISSN looks like 2789-1234 — eight digits, hyphenated, with X allowed as the last character.',
@@ -84,6 +90,15 @@ class JournalSettingsController extends Controller
             JournalSetting::updateOrCreate(
                 ['journal_id' => $journal->id, 'name' => $field, 'locale' => ''],
                 ['value' => $field === 'doi_prefix' || str_starts_with($field, 'issn') ? strtoupper($value) : $value],
+            );
+        }
+
+        foreach (self::FLAGS as $flag) {
+            // Stored either way, never deleted: an explicit false is the journal saying it does
+            // not screen, which must not read back as "never configured".
+            JournalSetting::updateOrCreate(
+                ['journal_id' => $journal->id, 'name' => $flag, 'locale' => ''],
+                ['value' => $request->boolean($flag) ? '1' : '0'],
             );
         }
 

@@ -26,15 +26,28 @@ use Alpha\Journal\Workflow\Exceptions\WorkflowTransitionException;
  */
 class SubmissionWorkflow
 {
-    /** @var array<string, array{from: SubmissionStage[], to: SubmissionStage}> */
+    /**
+     * `to` of null means the submission stays where it is — the decision changes custody, not
+     * position (see EditorialDecisionType::keepsStage()).
+     *
+     * @var array<string, array{from: SubmissionStage[], to: ?SubmissionStage}>
+     */
     private const TRANSITIONS = [
-        'send_to_review' => ['from' => [SubmissionStage::Submission], 'to' => SubmissionStage::Review],
+        'send_to_screening' => ['from' => [SubmissionStage::Submission], 'to' => SubmissionStage::Screening],
+        'send_to_review' => ['from' => [SubmissionStage::Submission, SubmissionStage::Screening], 'to' => SubmissionStage::Review],
+        'return_to_author' => [
+            'from' => [SubmissionStage::Submission, SubmissionStage::Screening, SubmissionStage::Review],
+            'to' => null,
+        ],
         'accept' => ['from' => [SubmissionStage::Review], 'to' => SubmissionStage::Copyediting],
         'send_to_copyediting' => ['from' => [SubmissionStage::Review], 'to' => SubmissionStage::Copyediting],
         'request_revisions' => ['from' => [SubmissionStage::Review], 'to' => SubmissionStage::Review],
         'resubmit' => ['from' => [SubmissionStage::Review], 'to' => SubmissionStage::Review],
         'decline' => [
-            'from' => [SubmissionStage::Submission, SubmissionStage::Review, SubmissionStage::Copyediting, SubmissionStage::Production],
+            'from' => [
+                SubmissionStage::Submission, SubmissionStage::Screening, SubmissionStage::Review,
+                SubmissionStage::Copyediting, SubmissionStage::Production,
+            ],
             'to' => SubmissionStage::Declined,
         ],
         'send_to_production' => ['from' => [SubmissionStage::Copyediting], 'to' => SubmissionStage::Production],
@@ -45,18 +58,45 @@ class SubmissionWorkflow
     private const DUAL_APPROVAL_DECISIONS = ['accept', 'decline'];
 
     /**
-     * Which decisions are legal from a given stage — used to render only valid actions in the
-     * decision UI (§13.5) rather than let the workflow itself be the only place that rejects an
-     * illegal choice after the fact.
+     * Which decisions are legal for this submission right now — used to render only valid actions
+     * in the decision UI (§13.5) rather than let the workflow itself be the only place that
+     * rejects an illegal choice after the fact.
+     *
+     * Takes the submission, not just a stage, because two of the decisions depend on how the
+     * journal is configured: a journal that screens must not be able to skip screening, and a
+     * journal that does not screen must never be offered it.
      *
      * @return EditorialDecisionType[]
      */
-    public function legalDecisionsFrom(SubmissionStage $stage): array
+    public function legalDecisionsFrom(Submission $submission): array
     {
+        $stage = $submission->stage;
+        $screens = $this->journalScreens($submission);
+
         return array_values(array_filter(
             EditorialDecisionType::cases(),
-            fn (EditorialDecisionType $decision) => in_array($stage, self::TRANSITIONS[$decision->value]['from'], true),
+            function (EditorialDecisionType $decision) use ($stage, $screens) {
+                if (! in_array($stage, self::TRANSITIONS[$decision->value]['from'], true)) {
+                    return false;
+                }
+
+                if ($decision === EditorialDecisionType::SendToScreening) {
+                    return $screens;
+                }
+
+                // With screening on, review is reached through screening, never around it.
+                if ($decision === EditorialDecisionType::SendToReview && $stage === SubmissionStage::Submission) {
+                    return ! $screens;
+                }
+
+                return true;
+            },
         ));
+    }
+
+    private function journalScreens(Submission $submission): bool
+    {
+        return (bool) $submission->journal->setting('use_screening_stage', false);
     }
 
     public function recordDecision(
@@ -68,11 +108,16 @@ class SubmissionWorkflow
         $roleUsed = $this->approvalRole($submission, $actor, $decision);
         $transition = $this->guardTransition($submission, $decision);
         $this->guardStageHasEditor($submission);
+        $this->guardScreeningNotSkipped($submission, $decision);
         $this->guardIssueAssignedForPublish($submission, $decision);
         $this->guardPublicationExistsForPublish($submission, $decision);
 
+        // A decision that keeps the stage targets the stage it is already on, so the recorded
+        // target_stage stays meaningful and applyTransition has one shape to handle.
+        $toStage = $transition['to'] ?? $submission->stage;
+
         if ($this->requiresDualApproval($submission, $decision)) {
-            return $this->recordWithCountersign($submission, $actor, $decision, $roleUsed, $transition['to'], $reason);
+            return $this->recordWithCountersign($submission, $actor, $decision, $roleUsed, $toStage, $reason);
         }
 
         $record = $submission->editorialDecisions()->create([
@@ -80,11 +125,11 @@ class SubmissionWorkflow
             'actor_id' => $actor->id,
             'role_used' => $roleUsed->value,
             'decision' => $decision->value,
-            'target_stage' => $transition['to']->value,
+            'target_stage' => $toStage->value,
             'reason' => $reason,
         ]);
 
-        $this->applyTransition($submission, $decision, $transition['to'], $actor, $record);
+        $this->applyTransition($submission, $decision, $toStage, $actor, $record);
 
         return $record;
     }
@@ -131,7 +176,15 @@ class SubmissionWorkflow
         EditorialDecision $record,
     ): void {
         $fromStage = $submission->stage->value;
-        $submission->update(['stage' => $toStage->value]);
+
+        $submission->update([
+            'stage' => $toStage->value,
+            // Custody, not position. Returning hands the manuscript back to the author; every
+            // other decision takes it back off them, including one taken while it was out — an
+            // editor who declines a returned submission must not leave it flagged as pending an
+            // author who no longer has anything to do.
+            'returned_to_author_at' => $decision === EditorialDecisionType::ReturnToAuthor ? now() : null,
+        ]);
 
         $this->carryEditorsForward($submission, $fromStage, $toStage);
 
@@ -220,6 +273,26 @@ class SubmissionWorkflow
         if (! $hasEditor) {
             throw new WorkflowTransitionException(
                 "Submission #{$submission->id} has no assigned editor on stage [{$submission->stage->value}]."
+            );
+        }
+    }
+
+    /**
+     * A journal that screens cannot have screening skipped.
+     *
+     * legalDecisionsFrom() already hides the option, but the UI is not the enforcement point
+     * (§3) — a direct POST would otherwise walk a manuscript straight past the check the journal
+     * publicly says it performs.
+     */
+    private function guardScreeningNotSkipped(Submission $submission, EditorialDecisionType $decision): void
+    {
+        if ($decision !== EditorialDecisionType::SendToReview) {
+            return;
+        }
+
+        if ($submission->stage === SubmissionStage::Submission && $this->journalScreens($submission)) {
+            throw new WorkflowTransitionException(
+                "This journal screens before review, so submission #{$submission->id} must go to screening first."
             );
         }
     }
