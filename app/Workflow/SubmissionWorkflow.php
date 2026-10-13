@@ -7,6 +7,7 @@ use Alpha\Journal\Enums\JournalRole;
 use Alpha\Journal\Enums\SubmissionStage;
 use Alpha\Journal\Events\SubmissionStageChanged;
 use Alpha\Journal\Models\EditorialDecision;
+use Alpha\Journal\Models\PlagiarismCheck;
 use Alpha\Journal\Models\Submission;
 use Alpha\Journal\Models\User;
 use Alpha\Journal\Support\Activity;
@@ -109,6 +110,7 @@ class SubmissionWorkflow
         $transition = $this->guardTransition($submission, $decision);
         $this->guardStageHasEditor($submission);
         $this->guardScreeningNotSkipped($submission, $decision);
+        $this->guardPlagiarismChecked($submission, $decision);
         $this->guardIssueAssignedForPublish($submission, $decision);
         $this->guardPublicationExistsForPublish($submission, $decision);
 
@@ -295,6 +297,38 @@ class SubmissionWorkflow
                 "This journal screens before review, so submission #{$submission->id} must go to screening first."
             );
         }
+    }
+
+    /**
+     * A journal that requires similarity screening cannot send an unscreened manuscript out.
+     *
+     * Checked at the point of entering peer review, not at submission: that is where the cost
+     * lands, since reviewers' time is the expensive thing a journal spends, and the screening is
+     * meant to happen before it is spent. A flagged or still-pending result blocks too — "we ran
+     * it" is not the same as "it came back clean", and conflating the two is how a screening
+     * policy becomes decorative.
+     */
+    private function guardPlagiarismChecked(Submission $submission, EditorialDecisionType $decision): void
+    {
+        if ($decision !== EditorialDecisionType::SendToReview) {
+            return;
+        }
+
+        if (! $submission->journal->setting('require_plagiarism_check', false)) {
+            return;
+        }
+
+        $latest = $submission->latestPlagiarismCheck();
+
+        if ($latest?->status === PlagiarismCheck::STATUS_PASSED) {
+            return;
+        }
+
+        throw new WorkflowTransitionException(
+            $latest === null
+                ? "This journal screens for similarity before review, and submission #{$submission->id} has no recorded check."
+                : "Submission #{$submission->id} has a similarity check recorded as [{$latest->status}]; review needs one that passed."
+        );
     }
 
     /**

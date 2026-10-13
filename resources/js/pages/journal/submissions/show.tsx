@@ -12,7 +12,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { FileText, User, UserPlus, X } from 'lucide-react';
-import { ChangeEvent, FormEventHandler } from 'react';
+import { ChangeEvent, FormEventHandler, useState } from 'react';
 
 interface TimelineEntry {
     id: number;
@@ -135,8 +135,189 @@ interface Props {
         uploadFile: boolean;
     };
     legalDecisions: LegalDecision[];
+    plagiarism: Plagiarism | null;
     availableReviewers: AvailableReviewer[];
     availableIssues: AvailableIssue[];
+}
+
+interface PlagiarismCheck {
+    id: number;
+    status: string;
+    statusLabel: string;
+    similarityPercent: number | null;
+    tool: string | null;
+    notes: string | null;
+    hasReport: boolean;
+    checkedBy: string | null;
+    checkedAt: string | null;
+}
+
+interface Plagiarism {
+    required: boolean;
+    statuses: { value: string; label: string }[];
+    checks: PlagiarismCheck[];
+}
+const CHECK_TONE: Record<string, string> = {
+    passed: 'border-emerald-300 bg-emerald-50 text-emerald-900',
+    flagged: 'border-amber-300 bg-amber-50 text-amber-900',
+    pending: 'border-slate-300 bg-slate-50 text-slate-700',
+};
+
+/**
+ * Similarity screening. Recorded by hand from whatever tool the institution licences — the
+ * platform holds the result, not a vendor integration.
+ */
+function PlagiarismPanel({ submissionId, journal, plagiarism }: { submissionId: number; journal: string; plagiarism: Plagiarism }) {
+    const form = useForm<{ status: string; similarity_percent: string; tool: string; notes: string; report: File | null }>({
+        status: 'passed',
+        similarity_percent: '',
+        tool: '',
+        notes: '',
+        report: null,
+    });
+    const { data, setData, processing, errors } = form;
+    const [open, setOpen] = useState(false);
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        form.post(route('journal.submissions.plagiarism.store', { journal, submission: submissionId }), {
+            preserveScroll: true,
+            forceFormData: true,
+            onSuccess: () => {
+                form.reset();
+                setOpen(false);
+            },
+        });
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-base">Similarity</CardTitle>
+                <CardDescription>
+                    {plagiarism.required
+                        ? 'This journal screens before peer review. A check that passed is required before reviewers can be invited.'
+                        : 'Optional for this journal. Record a result if you run a check.'}
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3">
+                {plagiarism.checks.length === 0 && <p className="text-muted-foreground text-sm">No check recorded yet.</p>}
+
+                {plagiarism.checks.map((check) => (
+                    <div key={check.id} className="grid gap-1 rounded-md border p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className={'rounded border px-2 py-0.5 text-xs font-medium ' + (CHECK_TONE[check.status] ?? '')}>
+                                {check.statusLabel}
+                            </span>
+                            {check.similarityPercent !== null && (
+                                <span className="text-sm font-medium tabular-nums">{check.similarityPercent}% similarity</span>
+                            )}
+                            {check.tool && <span className="text-muted-foreground text-xs">{check.tool}</span>}
+                        </div>
+                        {check.notes && <p className="text-sm">{check.notes}</p>}
+                        <p className="text-muted-foreground text-xs">
+                            {check.checkedBy ?? 'Unknown'}
+                            {check.checkedAt ? ' · ' + new Date(check.checkedAt).toLocaleDateString('en-GB') : ''}
+                        </p>
+                        {check.hasReport && (
+                            <a
+                                href={route('journal.submissions.plagiarism.report', {
+                                    journal,
+                                    submission: submissionId,
+                                    plagiarismCheck: check.id,
+                                })}
+                                className="text-primary text-xs hover:underline"
+                            >
+                                Open the report
+                            </a>
+                        )}
+                    </div>
+                ))}
+
+                {!open ? (
+                    <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className="justify-self-start">
+                        {plagiarism.checks.length > 0 ? 'Record another check' : 'Record a check'}
+                    </Button>
+                ) : (
+                    <form onSubmit={submit} className="grid gap-3 border-t pt-3">
+                        <div className="grid gap-2">
+                            <Label htmlFor="pc-status">Result</Label>
+                            <Select value={data.status} onValueChange={(value) => setData('status', value)}>
+                                <SelectTrigger id="pc-status">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {plagiarism.statuses.map((status) => (
+                                        <SelectItem key={status.value} value={status.value}>
+                                            {status.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.status} />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="grid gap-2">
+                                <Label htmlFor="pc-similarity">Similarity %</Label>
+                                <Input
+                                    id="pc-similarity"
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={data.similarity_percent}
+                                    onChange={(e) => setData('similarity_percent', e.target.value)}
+                                />
+                                <InputError message={errors.similarity_percent} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="pc-tool">Tool</Label>
+                                <Input
+                                    id="pc-tool"
+                                    value={data.tool}
+                                    onChange={(e) => setData('tool', e.target.value)}
+                                    placeholder="iThenticate"
+                                />
+                                <InputError message={errors.tool} />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="pc-notes">Notes</Label>
+                            <textarea
+                                id="pc-notes"
+                                className="border-input bg-background min-h-16 rounded-md border px-3 py-2 text-sm shadow-sm"
+                                value={data.notes}
+                                onChange={(e) => setData('notes', e.target.value)}
+                                placeholder="What the matches actually were."
+                            />
+                            <InputError message={errors.notes} />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="pc-report">Report (optional)</Label>
+                            <Input
+                                id="pc-report"
+                                type="file"
+                                accept=".pdf,.html,.htm"
+                                onChange={(e) => setData('report', e.target.files?.[0] ?? null)}
+                            />
+                            <InputError message={errors.report} />
+                        </div>
+
+                        <div className="flex gap-2">
+                            <Button type="submit" size="sm" disabled={processing}>
+                                Save check
+                            </Button>
+                            <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
+                                Cancel
+                            </Button>
+                        </div>
+                    </form>
+                )}
+            </CardContent>
+        </Card>
+    );
 }
 
 function reviewAssignmentStatus(assignment: ReviewAssignment): string {
@@ -622,6 +803,7 @@ export default function SubmissionShow({
     files,
     can,
     legalDecisions,
+    plagiarism,
     availableReviewers,
     availableIssues,
 }: Props) {
@@ -843,6 +1025,10 @@ export default function SubmissionShow({
                             hasPrefix={hasDoiPrefix}
                             canEdit={can.recordDecision}
                         />
+
+                        {plagiarism && (
+                            <PlagiarismPanel submissionId={submission.id} journal={journal} plagiarism={plagiarism} />
+                        )}
 
                         <GalleysCard journal={journal} submissionId={submission.id} galleys={galleys} canUpload={canUploadFiles} />
 

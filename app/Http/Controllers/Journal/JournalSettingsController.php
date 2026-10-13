@@ -31,7 +31,7 @@ class JournalSettingsController extends Controller
     private const FIELDS = ['publisher', 'issn_online', 'issn_print', 'doi_prefix', 'doi_pattern', 'doaj_api_key'];
 
     /** Settings stored as booleans rather than strings, so an unchecked box persists as false. */
-    private const FLAGS = ['use_screening_stage'];
+    private const FLAGS = ['use_screening_stage', 'require_plagiarism_check'];
 
     public function edit(): Response
     {
@@ -70,6 +70,7 @@ class JournalSettingsController extends Controller
             // Per journal, not per installation: each accepted journal has its own DOAJ account.
             'doaj_api_key' => ['nullable', 'string', 'max:255'],
             'use_screening_stage' => ['boolean'],
+            'require_plagiarism_check' => ['boolean'],
         ], [
             'issn_online.regex' => 'An ISSN looks like 2789-1234 — eight digits, hyphenated, with X allowed as the last character.',
             'issn_print.regex' => 'An ISSN looks like 2789-1234 — eight digits, hyphenated, with X allowed as the last character.',

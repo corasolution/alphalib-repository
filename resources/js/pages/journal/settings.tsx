@@ -170,6 +170,22 @@ export default function JournalSettings({ journal, settings, flags, defaultPatte
                                     </span>
                                 </span>
                             </label>
+
+                            <label className="mt-4 flex items-start gap-3 text-sm">
+                                <Checkbox
+                                    checked={Boolean(data.require_plagiarism_check)}
+                                    onCheckedChange={(checked) => setData('require_plagiarism_check', checked === true)}
+                                    className="mt-0.5"
+                                />
+                                <span>
+                                    <span className="font-medium">Require a similarity check before peer review</span>
+                                    <span className="text-muted-foreground mt-1 block">
+                                        A manuscript cannot be sent to reviewers until a check is recorded as passed. Results are entered
+                                        by an editor from whatever tool you licence — the platform stores the outcome and the report, it
+                                        does not run the check. Declining or returning a manuscript is never blocked by this.
+                                    </span>
+                                </span>
+                            </label>
                         </CardContent>
                     </Card>
                     <Card>

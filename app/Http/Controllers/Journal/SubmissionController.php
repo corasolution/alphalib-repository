@@ -180,6 +180,25 @@ class SubmissionController extends Controller
                     ->map(fn ($issue) => ['id' => $issue->id, 'identification' => $issue->identification()])
                     ->values()
                 : [],
+            // Similarity screening. Shown to anyone who can decide, because the result is what
+            // the send-to-review decision turns on when the journal requires it.
+            'plagiarism' => Gate::allows('recordDecision', $model) ? [
+                'required' => (bool) $model->journal->setting('require_plagiarism_check', false),
+                'statuses' => collect(\Alpha\Journal\Models\PlagiarismCheck::STATUSES)
+                    ->map(fn (string $label, string $value) => ['value' => $value, 'label' => $label])
+                    ->values(),
+                'checks' => $model->plagiarismChecks()->with('checkedBy')->get()->map(fn ($check) => [
+                    'id' => $check->id,
+                    'status' => $check->status,
+                    'statusLabel' => $check->statusLabel(),
+                    'similarityPercent' => $check->similarity_percent,
+                    'tool' => $check->tool,
+                    'notes' => $check->notes,
+                    'hasReport' => $check->hasReport(),
+                    'checkedBy' => $check->checkedBy?->name,
+                    'checkedAt' => $check->checked_at?->toIso8601String(),
+                ]),
+            ] : null,
             'legalDecisions' => Gate::allows('recordDecision', $model)
                 ? collect($workflow->legalDecisionsFrom($model))
                     ->when(

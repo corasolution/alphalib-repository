@@ -63,6 +63,17 @@ class Submission extends Model
         return $this->hasMany(StageAssignment::class);
     }
 
+    /** Similarity screenings, newest first — the gate and the UI both want the latest. */
+    public function plagiarismChecks(): HasMany
+    {
+        return $this->hasMany(PlagiarismCheck::class)->latest('checked_at');
+    }
+
+    public function latestPlagiarismCheck(): ?PlagiarismCheck
+    {
+        return $this->plagiarismChecks()->first();
+    }
+
     public function reviewRounds(): HasMany
     {
         return $this->hasMany(ReviewRound::class);

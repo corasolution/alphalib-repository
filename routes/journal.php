@@ -11,6 +11,7 @@ use Alpha\Journal\Http\Controllers\Journal\JournalSettingsController;
 use Alpha\Journal\Http\Controllers\Journal\PeopleController;
 use Alpha\Journal\Http\Controllers\Journal\PublicArticleController;
 use Alpha\Journal\Http\Controllers\Journal\PublicationDoiController;
+use Alpha\Journal\Http\Controllers\Journal\PlagiarismCheckController;
 use Alpha\Journal\Http\Controllers\Journal\PublicationGalleyController;
 use Alpha\Journal\Http\Controllers\Journal\PublicJournalController;
 use Alpha\Journal\Http\Controllers\Journal\ReviewAssignmentController;
@@ -51,6 +52,10 @@ Route::middleware(['auth', 'journal'])->prefix('journal/{journal}')->name('journ
     Route::post('submissions/{submission}/issue-assignment', [IssueAssignmentController::class, 'store'])->name('submissions.issue-assignment.store');
 
     // Article galleys — the readable file a reader downloads (§7), produced during Production.
+    // Similarity screening: recorded by an editor from whatever tool the institution licences.
+    Route::post('submissions/{submission}/plagiarism-checks', [PlagiarismCheckController::class, 'store'])->name('submissions.plagiarism.store');
+    Route::get('submissions/{submission}/plagiarism-checks/{plagiarismCheck}/report', [PlagiarismCheckController::class, 'report'])->name('submissions.plagiarism.report');
+
     Route::post('submissions/{submission}/galleys', [PublicationGalleyController::class, 'store'])->name('submissions.galleys.store');
     Route::delete('submissions/{submission}/galleys/{publicationGalley}', [PublicationGalleyController::class, 'destroy'])->name('submissions.galleys.destroy');
 

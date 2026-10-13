@@ -530,6 +530,50 @@ export default function Handbook({ site, menuItems, socialLinks }: Props) {
                             </p>
                         </Rule>
 
+                        <H3>Returning a manuscript</H3>
+                        <P>
+                            <B>Return to author</B> hands a manuscript back for corrections without rejecting it — wrong template,
+                            missing ethics statement, figures unreadable. It is available from Submission, Screening and Review, and it
+                            is the right answer whenever the problem is fixable and the manuscript is not yet ready to go forward.
+                        </P>
+                        <P>
+                            Returning does not move the submission to another stage; it changes <em>whose move it is</em>. The submission
+                            leaves your <B>Awaiting your decision</B> list and appears under <B>With the author</B> until they upload a
+                            replacement manuscript, at which point it comes straight back to you. A supporting file does not bring it
+                            back — only a new manuscript does.
+                        </P>
+
+                        <H3>Screening and similarity</H3>
+                        <P>
+                            A journal can switch on two optional steps in <B>Journal → Settings → Workflow</B>:
+                        </P>
+                        <Fields
+                            rows={[
+                                [
+                                    'Screening stage',
+                                    'Adds a Screening stage between submission and review for the first editorial look and the technical check. With it on, review is reached through screening and cannot be skipped.',
+                                ],
+                                [
+                                    'Similarity check',
+                                    'A manuscript cannot be sent to reviewers until a check is recorded as passed. Declining and returning are never blocked by it.',
+                                ],
+                            ]}
+                        />
+                        <P>
+                            Similarity results are recorded by an editor in the <B>Similarity</B> panel on the submission, from whatever
+                            tool your institution licences — Turnitin, iThenticate, Crossref Similarity Check. The platform stores the
+                            outcome, the percentage, the tool and optionally the report; <B>it does not run the check itself.</B> A
+                            submission can be checked more than once, and the most recent result is the one that counts, so a re-check
+                            after corrections clears an earlier flag.
+                        </P>
+                        <Note label="Why “passed” and not just “checked”">
+                            <p>
+                                A result of <B>Awaiting report</B> or <B>Flagged</B> does not open the door. Having run a check is not
+                                the same as having had it come back clean, and treating them as equivalent is how a screening policy
+                                becomes decorative.
+                            </p>
+                        </Note>
+
                         <H3>Running a review round</H3>
                         <Steps
                             items={[
@@ -565,7 +609,9 @@ export default function Handbook({ site, menuItems, socialLinks }: Props) {
                         <Table
                             head={['Decision', 'From', 'To', 'Meaning']}
                             rows={[
-                                [<B>Send to review</B>, 'Submission', 'Review', 'Opens peer review.'],
+                                [<B>Send to screening</B>, 'Submission', 'Screening', 'Only when the journal screens.'],
+                                [<B>Send to review</B>, 'Submission or Screening', 'Review', 'Opens peer review.'],
+                                [<B>Return to author</B>, 'Submission, Screening, Review', 'unchanged', 'Back for corrections. Not a rejection.'],
                                 [<B>Request revisions</B>, 'Review', 'Review', 'Author revises; no further review needed.'],
                                 [<B>Resubmit</B>, 'Review', 'Review', 'Author revises and it goes out for review again.'],
                                 [<B>Accept</B>, 'Review', 'Copyediting', 'Accepted for publication.'],
@@ -978,6 +1024,7 @@ export default function Handbook({ site, menuItems, socialLinks }: Props) {
                             head={['Stage', 'What is happening', 'Who is waiting']}
                             rows={[
                                 [<B>Submission</B>, 'Just arrived. Needs an editor.', 'Editor'],
+                                [<B>Screening</B>, 'First editorial look and the technical check. Optional.', 'Editor'],
                                 [<B>Review</B>, 'Out with reviewers, or with the author for revisions.', 'Reviewers, then the editor'],
                                 [<B>Copyediting</B>, 'Accepted. Text is being finalised.', 'Copyeditor'],
                                 [<B>Production</B>, 'Galley, DOI and issue are being prepared.', 'Layout editor, then the editor'],
