@@ -27,6 +27,8 @@ interface Props {
         tagline: string;
         about: string;
         redirectJournalId: number | null;
+        embedJournalId: number | null;
+        km: { title: string; tagline: string; about: string; highlights: Highlight[] };
         logoUrl: string | null;
     };
     highlights: Highlight[];
@@ -48,6 +50,8 @@ export default function CmsHomepage({ site, highlights, journals }: Props) {
         about: string;
         highlights: Highlight[];
         redirect_journal_id: string;
+        embed_journal_id: string;
+        km: { title: string; tagline: string; about: string; highlights: Highlight[] };
         logo: File | null;
     }>({
         _method: 'put',
@@ -56,6 +60,8 @@ export default function CmsHomepage({ site, highlights, journals }: Props) {
         about: site.about,
         highlights,
         redirect_journal_id: site.redirectJournalId ? String(site.redirectJournalId) : NONE,
+        embed_journal_id: site.embedJournalId ? String(site.embedJournalId) : NONE,
+        km: site.km,
         logo: null,
     });
     const { data, setData, processing, errors } = form;
@@ -75,6 +81,7 @@ export default function CmsHomepage({ site, highlights, journals }: Props) {
         form.transform((data) => ({
             ...data,
             redirect_journal_id: data.redirect_journal_id === NONE ? '' : data.redirect_journal_id,
+            embed_journal_id: data.embed_journal_id === NONE ? '' : data.embed_journal_id,
         }));
         form.post(route('cms.homepage.update'), { forceFormData: true });
     };
@@ -162,6 +169,87 @@ export default function CmsHomepage({ site, highlights, journals }: Props) {
                     </Card>
                     <Card>
                         <CardHeader>
+                            <CardTitle className="text-base">Khmer translation (ភាសាខ្មែរ)</CardTitle>
+                            <CardDescription>
+                                Shown instead of the text above when a visitor switches the site to Khmer. Leave a field blank to keep showing the
+                                English text. Highlight cards are matched to the cards above by position.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="km_title">Site title</Label>
+                                <Input
+                                    id="km_title"
+                                    lang="km"
+                                    value={data.km.title}
+                                    onChange={(e) => setData('km', { ...data.km, title: e.target.value })}
+                                />
+                                <InputError message={errors['km.title' as keyof typeof errors]} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="km_tagline">Tagline</Label>
+                                <Input
+                                    id="km_tagline"
+                                    lang="km"
+                                    value={data.km.tagline}
+                                    onChange={(e) => setData('km', { ...data.km, tagline: e.target.value })}
+                                />
+                                <InputError message={errors['km.tagline' as keyof typeof errors]} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="km_about">About</Label>
+                                <textarea
+                                    id="km_about"
+                                    lang="km"
+                                    className="border-input bg-background min-h-32 rounded-md border px-3 py-2 text-sm shadow-sm"
+                                    value={data.km.about}
+                                    onChange={(e) => setData('km', { ...data.km, about: e.target.value })}
+                                />
+                                <InputError message={errors['km.about' as keyof typeof errors]} />
+                            </div>
+
+                            {data.km.highlights.map((highlight, index) => (
+                                <div key={index} className="grid gap-2 border-l-2 pl-4">
+                                    <Label htmlFor={`km_highlight_title_${index}`} className="text-muted-foreground text-xs tracking-wide uppercase">
+                                        Card {index + 1}
+                                    </Label>
+                                    <Input
+                                        id={`km_highlight_title_${index}`}
+                                        lang="km"
+                                        placeholder="Heading"
+                                        value={highlight.title}
+                                        onChange={(e) =>
+                                            setData('km', {
+                                                ...data.km,
+                                                highlights: data.km.highlights.map((card, i) =>
+                                                    i === index ? { ...card, title: e.target.value } : card,
+                                                ),
+                                            })
+                                        }
+                                    />
+                                    <textarea
+                                        lang="km"
+                                        placeholder="A sentence or two."
+                                        className="border-input bg-background min-h-20 rounded-md border px-3 py-2 text-sm shadow-sm"
+                                        value={highlight.body}
+                                        onChange={(e) =>
+                                            setData('km', {
+                                                ...data.km,
+                                                highlights: data.km.highlights.map((card, i) =>
+                                                    i === index ? { ...card, body: e.target.value } : card,
+                                                ),
+                                            })
+                                        }
+                                    />
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
                             <CardTitle className="text-base">Logo</CardTitle>
                             <CardDescription>Shown beside the site name everywhere, including the staff sidebar and sign-in screen.</CardDescription>
                         </CardHeader>
@@ -202,6 +290,28 @@ export default function CmsHomepage({ site, highlights, journals }: Props) {
                                     Useful for a single-journal install — visitors go straight to the journal instead of a site homepage.
                                 </p>
                                 <InputError message={errors.redirect_journal_id} />
+                            </div>
+
+                            <div className="mt-6 grid gap-2">
+                                <Label htmlFor="embed_journal_id">Show one journal's issues on the homepage</Label>
+                                <Select value={data.embed_journal_id} onValueChange={(value) => setData('embed_journal_id', value)}>
+                                    <SelectTrigger id="embed_journal_id">
+                                        <SelectValue placeholder="No — list the journals" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value={NONE}>No — list the journals</SelectItem>
+                                        {journals.map((journal) => (
+                                            <SelectItem key={journal.id} value={String(journal.id)}>
+                                                {journal.title}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-muted-foreground text-xs">
+                                    For a library with one main journal: the homepage lists that journal's current issue and archive directly, in
+                                    place of the list of journals. Visitors stay on the homepage. Ignored if a redirect is set above.
+                                </p>
+                                <InputError message={errors.embed_journal_id} />
                             </div>
                         </CardContent>
                     </Card>

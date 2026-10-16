@@ -26,11 +26,11 @@ class HandbookController extends Controller
 
         return Inertia::render('public/handbook', [
             'site' => [
-                'title' => $site->title,
+                'title' => $site->displayTitle(),
                 'logoUrl' => $site->logoUrl(),
-                'footerText' => $site->settings['footer_text'] ?? null,
+                'footerText' => $site->displayFooterText(),
             ],
-            'menuItems' => $site->settings['menu_items'] ?? [],
+            'menuItems' => $site->displayMenuItems(),
             'socialLinks' => $site->socialLinks(),
         ]);
     }

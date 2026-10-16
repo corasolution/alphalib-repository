@@ -1,3 +1,4 @@
+import FeaturedJournal from '@/components/featured-journal';
 import PublicSiteLayout from '@/layouts/public-site-layout';
 import { useTranslations } from '@/lib/i18n';
 import { Link } from '@inertiajs/react';
@@ -12,7 +13,7 @@ import { type TemplateProps } from './types';
  * photographic banner into it would make it a different template. The images stay in the CMS
  * untouched, so switching to a template that uses them brings them straight back.
  */
-export default function ClassicTemplate({ site, menuItems, socialLinks, highlights, journals }: TemplateProps) {
+export default function ClassicTemplate({ site, menuItems, socialLinks, highlights, journals, featuredJournal }: TemplateProps) {
     const { t } = useTranslations();
 
     return (
@@ -54,40 +55,46 @@ export default function ClassicTemplate({ site, menuItems, socialLinks, highligh
                     </section>
                 )}
 
-                <section className="pt-10">
-                    <h2 className="text-site-primary-dark font-display mb-6 text-center text-sm font-bold tracking-[0.25em] uppercase">
-                        {t('home.journals')}
-                    </h2>
+                {featuredJournal ? (
+                    <FeaturedJournal featured={featuredJournal} />
+                ) : (
+                    <section className="pt-10">
+                        <h2 className="text-site-primary-dark font-display mb-6 text-center text-sm font-bold tracking-[0.25em] uppercase">
+                            {t('home.journals')}
+                        </h2>
 
-                    {journals.length === 0 ? (
-                        <div className="text-site-body flex flex-col items-center gap-2 py-12 text-center">
-                            <BookOpen className="text-site-border size-8" />
-                            <p>{t('home.no_journals')}</p>
-                        </div>
-                    ) : (
-                        <ol className="divide-site-border border-site-border mx-auto max-w-[46rem] divide-y border-y">
-                            {journals.map((journal) => (
-                                <li key={journal.path}>
-                                    <Link
-                                        href={`/journal/${journal.path}`}
-                                        className="hover:bg-site-surface group flex items-baseline gap-4 px-2 py-5 transition-colors"
-                                    >
-                                        <span className="text-site-ink group-hover:text-site-primary font-body flex-1 text-lg">{journal.title}</span>
-                                        {/* A leader rule, the way a printed table of contents runs the eye across. */}
-                                        <span className="border-site-border hidden flex-1 border-b border-dotted sm:block" />
-                                        <span className="text-site-muted font-display text-xs tracking-wider uppercase">Read</span>
-                                    </Link>
-                                </li>
-                            ))}
-                        </ol>
-                    )}
+                        {journals.length === 0 ? (
+                            <div className="text-site-body flex flex-col items-center gap-2 py-12 text-center">
+                                <BookOpen className="text-site-border size-8" />
+                                <p>{t('home.no_journals')}</p>
+                            </div>
+                        ) : (
+                            <ol className="divide-site-border border-site-border mx-auto max-w-[46rem] divide-y border-y">
+                                {journals.map((journal) => (
+                                    <li key={journal.path}>
+                                        <Link
+                                            href={`/journal/${journal.path}`}
+                                            className="hover:bg-site-surface group flex items-baseline gap-4 px-2 py-5 transition-colors"
+                                        >
+                                            <span className="text-site-ink group-hover:text-site-primary font-body flex-1 text-lg">
+                                                {journal.title}
+                                            </span>
+                                            {/* A leader rule, the way a printed table of contents runs the eye across. */}
+                                            <span className="border-site-border hidden flex-1 border-b border-dotted sm:block" />
+                                            <span className="text-site-muted font-display text-xs tracking-wider uppercase">Read</span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ol>
+                        )}
 
-                    <p className="mt-8 text-center">
-                        <Link href="/journals" className="text-site-primary font-display text-sm font-semibold hover:underline">
-                            {t('home.view_all_journals')}
-                        </Link>
-                    </p>
-                </section>
+                        <p className="mt-8 text-center">
+                            <Link href="/journals" className="text-site-primary font-display text-sm font-semibold hover:underline">
+                                {t('home.view_all_journals')}
+                            </Link>
+                        </p>
+                    </section>
+                )}
             </div>
         </PublicSiteLayout>
     );

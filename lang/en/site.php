@@ -36,6 +36,8 @@ return [
         'submit_prompt' => 'Have a manuscript ready? We welcome new submissions.',
         'register_to_submit' => 'Register to submit',
         'untitled' => 'Untitled article',
+        'published_on' => 'Published :date',
+        'read_article' => 'Read article',
     ],
 
     'page' => [
@@ -77,6 +79,7 @@ return [
         'oai' => 'OAI-PMH endpoint',
         'powered_by' => 'Powered by',
         'strapline' => 'Open access · Peer reviewed · Persistently identified',
+        'developed_by' => 'Developed By: IT eLibrary Team',
     ],
 
 ];

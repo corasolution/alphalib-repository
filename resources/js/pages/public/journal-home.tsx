@@ -1,20 +1,8 @@
+import JournalIssues, { type ArchiveIssue, type CurrentIssue } from '@/components/journal-issues';
 import PublicSiteLayout, { type MenuItem } from '@/layouts/public-site-layout';
 import { useTranslations } from '@/lib/i18n';
 import { Link } from '@inertiajs/react';
-import { ArrowUpRight, BookOpen } from 'lucide-react';
-
-interface Article {
-    id: number;
-    title: string | null;
-    authors: string;
-}
-
-interface ArchiveIssue {
-    id: number;
-    identification: string;
-    title: string | null;
-    articleCount: number;
-}
+import { ArrowUpRight } from 'lucide-react';
 
 interface Props {
     site: {
@@ -32,11 +20,7 @@ interface Props {
         tagline?: string;
         about?: string;
     };
-    currentIssue: {
-        identification: string;
-        title: string | null;
-        articles: Article[];
-    } | null;
+    currentIssue: CurrentIssue | null;
     archive: ArchiveIssue[];
 }
 
@@ -77,67 +61,7 @@ export default function JournalHome({ site, menuItems, socialLinks, journal, con
                     </section>
                 )}
 
-                <section>
-                    <h2 className="font-display text-site-primary-dark mb-1 text-2xl font-semibold">{t('journal.current_issue')}</h2>
-                    {currentIssue ? (
-                        <>
-                            <p className="font-display text-site-body mb-6">
-                                {currentIssue.identification}
-                                {currentIssue.title && ` — ${currentIssue.title}`}
-                            </p>
-
-                            {currentIssue.articles.length === 0 ? (
-                                <p className="border-site-border text-site-muted rounded-xl border border-dashed py-10 text-center">
-                                    {t('journal.issue_empty')}
-                                </p>
-                            ) : (
-                                <ol className="divide-site-border border-site-border divide-y rounded-xl border bg-white shadow-sm">
-                                    {currentIssue.articles.map((article) => (
-                                        <li key={article.id}>
-                                            {/*
-                                              Now a link: an article used to be a title in a list
-                                              with nowhere to go and no file to read.
-                                            */}
-                                            <Link
-                                                href={`/journal/${journal.path}/article/${article.id}`}
-                                                className="group hover:bg-site-surface block px-6 py-5 transition-colors"
-                                            >
-                                                <span className="font-display text-site-ink group-hover:text-site-primary font-semibold">
-                                                    {article.title ?? t('journal.untitled')}
-                                                </span>
-                                                {article.authors && <span className="text-site-body mt-1 block text-sm">{article.authors}</span>}
-                                            </Link>
-                                        </li>
-                                    ))}
-                                </ol>
-                            )}
-                        </>
-                    ) : (
-                        <div className="border-site-border text-site-body flex flex-col items-center gap-2 rounded-xl border border-dashed py-16 text-center">
-                            <BookOpen className="text-site-border size-8" aria-hidden="true" />
-                            <p>{t('journal.no_issues')}</p>
-                        </div>
-                    )}
-                </section>
-
-                {archive.length > 0 && (
-                    <section>
-                        <h2 className="font-display text-site-primary-dark mb-6 text-2xl font-semibold">{t('journal.archive')}</h2>
-                        <ul className="divide-site-border border-site-border divide-y rounded-xl border bg-white shadow-sm">
-                            {archive.map((issue) => (
-                                <li key={issue.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-6 py-4">
-                                    <span className="font-display text-site-ink font-semibold">
-                                        {issue.identification}
-                                        {issue.title && <span className="text-site-body font-normal"> — {issue.title}</span>}
-                                    </span>
-                                    <span className="font-display text-site-muted text-sm">
-                                        {t('journal.articles', { count: issue.articleCount })}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-                )}
+                <JournalIssues journalPath={journal.path} currentIssue={currentIssue} archive={archive} />
 
                 {/*
                   The one call to action kept from the old page. It is how an author actually

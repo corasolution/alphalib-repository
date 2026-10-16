@@ -1,3 +1,4 @@
+import FeaturedJournal from '@/components/featured-journal';
 import PublicSiteLayout from '@/layouts/public-site-layout';
 import { useTranslations } from '@/lib/i18n';
 import { Link } from '@inertiajs/react';
@@ -109,7 +110,7 @@ function HighlightStrip({ highlights }: { highlights: Highlight[] }) {
  * journal instead (SiteController::home). Logo, header menu, footer text, and social links are
  * all optional and admin-managed via the CMS section — a block simply doesn't render when unset.
  */
-export default function AcademicTemplate({ site, menuItems, socialLinks, highlights, heroSlides, journals }: TemplateProps) {
+export default function AcademicTemplate({ site, menuItems, socialLinks, highlights, heroSlides, journals, featuredJournal }: TemplateProps) {
     const { t } = useTranslations();
 
     return (
@@ -149,35 +150,39 @@ export default function AcademicTemplate({ site, menuItems, socialLinks, highlig
             )}
 
             <div className="mx-auto max-w-[1200px] space-y-10 px-6 py-16">
-                <section>
-                    <div className="mb-6 flex items-center justify-between">
-                        <h2 className="font-display text-site-primary-dark text-2xl font-semibold">{t('home.journals')}</h2>
-                        {journals.length > 0 && (
-                            <Link href="/journals" className="font-display text-site-primary text-sm font-semibold hover:underline">
-                                {t('home.view_all_journals')}
-                            </Link>
-                        )}
-                    </div>
-                    {journals.length === 0 ? (
-                        <div className="text-site-body flex flex-col items-center gap-2 py-12 text-center">
-                            <BookOpen className="text-site-border size-8" />
-                            <p>{t('home.no_journals')}</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                            {journals.map((journal) => (
-                                <Link
-                                    key={journal.path}
-                                    href={`/journal/${journal.path}`}
-                                    className="group border-site-border flex items-center justify-between rounded-xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
-                                >
-                                    <span className="font-display text-site-ink text-lg font-semibold">{journal.title}</span>
-                                    <ArrowUpRight className="text-site-primary size-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                {featuredJournal ? (
+                    <FeaturedJournal featured={featuredJournal} />
+                ) : (
+                    <section>
+                        <div className="mb-6 flex items-center justify-between">
+                            <h2 className="font-display text-site-primary-dark text-2xl font-semibold">{t('home.journals')}</h2>
+                            {journals.length > 0 && (
+                                <Link href="/journals" className="font-display text-site-primary text-sm font-semibold hover:underline">
+                                    {t('home.view_all_journals')}
                                 </Link>
-                            ))}
+                            )}
                         </div>
-                    )}
-                </section>
+                        {journals.length === 0 ? (
+                            <div className="text-site-body flex flex-col items-center gap-2 py-12 text-center">
+                                <BookOpen className="text-site-border size-8" />
+                                <p>{t('home.no_journals')}</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                {journals.map((journal) => (
+                                    <Link
+                                        key={journal.path}
+                                        href={`/journal/${journal.path}`}
+                                        className="group border-site-border flex items-center justify-between rounded-xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+                                    >
+                                        <span className="font-display text-site-ink text-lg font-semibold">{journal.title}</span>
+                                        <ArrowUpRight className="text-site-primary size-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                )}
             </div>
         </PublicSiteLayout>
     );

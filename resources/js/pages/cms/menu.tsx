@@ -12,6 +12,7 @@ import { FormEventHandler } from 'react';
 
 interface MenuItem {
     label: string;
+    label_km: string;
     url: string;
 }
 
@@ -35,7 +36,7 @@ export default function CmsMenu({ menuItems }: Props) {
         put(route('cms.menu.update'));
     };
 
-    const addItem = () => setData('menu_items', [...data.menu_items, { label: '', url: '' }]);
+    const addItem = () => setData('menu_items', [...data.menu_items, { label: '', label_km: '', url: '' }]);
     const removeItem = (index: number) =>
         setData(
             'menu_items',
@@ -71,6 +72,11 @@ export default function CmsMenu({ menuItems }: Props) {
                                         <Label>Label</Label>
                                         <Input value={item.label} onChange={(e) => updateItem(index, 'label', e.target.value)} />
                                         <InputError message={(errors as Record<string, string>)[`menu_items.${index}.label`]} />
+                                    </div>
+                                    <div className="grid flex-1 gap-2">
+                                        <Label>Khmer label (ភាសាខ្មែរ)</Label>
+                                        <Input lang="km" value={item.label_km} onChange={(e) => updateItem(index, 'label_km', e.target.value)} />
+                                        <InputError message={(errors as Record<string, string>)[`menu_items.${index}.label_km`]} />
                                     </div>
                                     <div className="grid flex-1 gap-2">
                                         <Label>URL</Label>

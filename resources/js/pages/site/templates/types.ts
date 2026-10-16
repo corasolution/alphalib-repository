@@ -1,3 +1,4 @@
+import { type FeaturedJournalData } from '@/components/featured-journal';
 import { type MenuItem } from '@/layouts/public-site-layout';
 
 export interface JournalSummary {
@@ -39,4 +40,6 @@ export interface TemplateProps {
     highlights: Highlight[];
     heroSlides: HeroSlide[];
     journals: JournalSummary[];
+    /** Set when an admin chose to show one journal's issues here instead of the list of journals. */
+    featuredJournal: FeaturedJournalData | null;
 }

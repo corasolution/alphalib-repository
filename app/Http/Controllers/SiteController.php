@@ -5,6 +5,7 @@ namespace Alpha\Journal\Http\Controllers;
 use Alpha\Journal\Models\Journal;
 use Alpha\Journal\Models\Publication;
 use Alpha\Journal\Models\Site;
+use Alpha\Journal\Support\JournalListing;
 use Alpha\Journal\Support\SiteTheme;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -30,19 +31,42 @@ class SiteController extends Controller
             }
         }
 
+        // A single-journal library can show that journal's issues right on the homepage. Unlike
+        // the redirect above this keeps the visitor on '/', wearing the site's own design.
+        $featured = null;
+        $embedId = $site->settings['embed_journal_id'] ?? null;
+        $embedded = $embedId ? Journal::find($embedId) : null;
+
+        if ($embedded && $embedded->is_enabled) {
+            $chain = array_values(array_unique(array_filter([
+                app()->getLocale(),
+                $embedded->primary_locale,
+                $site->primary_locale,
+                config('app.fallback_locale'),
+            ])));
+
+            $featured = [
+                'journal' => [
+                    'path' => $embedded->path,
+                    'title' => $embedded->title->get(...$chain) ?? $embedded->path,
+                ],
+            ] + JournalListing::for($embedded, $chain);
+        }
+
         return Inertia::render('site/home', [
             // Which layout renders. Resolved server-side so the admin preview and the stored
             // choice go through one place, and an unknown key falls back rather than blanking.
             'template' => app(SiteTheme::class)->template(request()),
             'site' => [
-                'title' => $site->title,
-                'tagline' => $site->settings['tagline'] ?? null,
-                'about' => $site->settings['about'] ?? null,
-                'footerText' => $site->settings['footer_text'] ?? null,
+                'title' => $site->displayTitle(),
+                'tagline' => $site->displayTagline(),
+                'about' => $site->displayAbout(),
+                'footerText' => $site->displayFooterText(),
                 'logoUrl' => $site->logoUrl(),
             ],
-            'menuItems' => $site->settings['menu_items'] ?? [],
+            'menuItems' => $site->displayMenuItems(),
             'socialLinks' => $site->socialLinks(),
+            'featuredJournal' => $featured,
             'highlights' => $site->highlights(),
             'heroSlides' => $site->heroSlides->map(fn ($slide) => [
                 'id' => $slide->id,
@@ -72,11 +96,11 @@ class SiteController extends Controller
 
         return Inertia::render('site/journals', [
             'site' => [
-                'title' => $site->title,
+                'title' => $site->displayTitle(),
                 'logoUrl' => $site->logoUrl(),
-                'footerText' => $site->settings['footer_text'] ?? null,
+                'footerText' => $site->displayFooterText(),
             ],
-            'menuItems' => $site->settings['menu_items'] ?? [],
+            'menuItems' => $site->displayMenuItems(),
             'socialLinks' => $site->socialLinks(),
             'journals' => Journal::where('is_enabled', true)
                 ->orderBy('title->'.$site->primary_locale)

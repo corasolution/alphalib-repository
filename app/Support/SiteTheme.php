@@ -86,6 +86,22 @@ class SiteTheme
                 'muted' => '#767676',
             ],
         ],
+        'blue' => [
+            'name' => 'Blue',
+            'description' => 'Deep navy hero with a warm gold glow, elevated white cards and soft blue surfaces. Modelled on the Rule Library catalogue.',
+            'palette' => [
+                'primary' => '#0b4b8f',
+                'primary-dark' => '#083a70',
+                'primary-deep' => '#062a52',
+                'accent' => '#a9cdf0',
+                'surface' => '#f6f7fa',
+                'surface-alt' => '#d9e7f5',
+                'border' => '#dde1ea',
+                'ink' => '#14213d',
+                'body' => '#43506b',
+                'muted' => '#6b7691',
+            ],
+        ],
         'bold' => [
             'name' => 'Bold',
             'description' => 'Full-bleed colour blocks and oversized headings. High contrast.',

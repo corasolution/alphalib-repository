@@ -1,3 +1,4 @@
+import FeaturedJournal from '@/components/featured-journal';
 import PublicSiteLayout from '@/layouts/public-site-layout';
 import { useTranslations } from '@/lib/i18n';
 import { Link } from '@inertiajs/react';
@@ -12,7 +13,7 @@ import { type TemplateProps } from './types';
  * CMS → Appearance matter most on this template: a university with a strong brand colour gets the
  * biggest visible return from setting it.
  */
-export default function BoldTemplate({ site, menuItems, socialLinks, highlights, journals }: TemplateProps) {
+export default function BoldTemplate({ site, menuItems, socialLinks, highlights, journals, featuredJournal }: TemplateProps) {
     const { t } = useTranslations();
 
     return (
@@ -62,31 +63,39 @@ export default function BoldTemplate({ site, menuItems, socialLinks, highlights,
                 </section>
             )}
 
-            <section className="bg-site-primary py-16 text-white">
-                <div className="mx-auto max-w-[1200px] px-6">
-                    <h2 className="font-display mb-8 text-3xl font-bold">{t('home.journals')}</h2>
+            {featuredJournal ? (
+                <section className="bg-white py-16">
+                    <div className="mx-auto max-w-[1200px] px-6">
+                        <FeaturedJournal featured={featuredJournal} />
+                    </div>
+                </section>
+            ) : (
+                <section className="bg-site-primary py-16 text-white">
+                    <div className="mx-auto max-w-[1200px] px-6">
+                        <h2 className="font-display mb-8 text-3xl font-bold">{t('home.journals')}</h2>
 
-                    {journals.length === 0 ? (
-                        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-white/30 py-16 text-center text-white/80">
-                            <BookOpen className="size-8" />
-                            <p>{t('home.no_journals')}</p>
-                        </div>
-                    ) : (
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {journals.map((journal) => (
-                                <Link
-                                    key={journal.path}
-                                    href={`/journal/${journal.path}`}
-                                    className="group hover:text-site-primary-dark flex items-center justify-between gap-4 rounded-xl border-2 border-white/40 p-6 transition-colors hover:bg-white"
-                                >
-                                    <span className="font-display text-xl font-bold">{journal.title}</span>
-                                    <ArrowRight className="size-5 shrink-0 transition-transform group-hover:translate-x-1" />
-                                </Link>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </section>
+                        {journals.length === 0 ? (
+                            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-white/30 py-16 text-center text-white/80">
+                                <BookOpen className="size-8" />
+                                <p>{t('home.no_journals')}</p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {journals.map((journal) => (
+                                    <Link
+                                        key={journal.path}
+                                        href={`/journal/${journal.path}`}
+                                        className="group hover:text-site-primary-dark flex items-center justify-between gap-4 rounded-xl border-2 border-white/40 p-6 transition-colors hover:bg-white"
+                                    >
+                                        <span className="font-display text-xl font-bold">{journal.title}</span>
+                                        <ArrowRight className="size-5 shrink-0 transition-transform group-hover:translate-x-1" />
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </section>
+            )}
         </PublicSiteLayout>
     );
 }

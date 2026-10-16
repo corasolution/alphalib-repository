@@ -3,11 +3,10 @@
 namespace Alpha\Journal\Http\Controllers\Journal;
 
 use Alpha\Journal\Http\Controllers\Controller;
-use Alpha\Journal\Models\Issue;
 use Alpha\Journal\Models\Journal;
-use Alpha\Journal\Models\Publication;
 use Alpha\Journal\Models\Site;
 use Alpha\Journal\Support\JournalContext;
+use Alpha\Journal\Support\JournalListing;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -40,24 +39,18 @@ class PublicJournalController extends Controller
         ])));
         $locale = $chain[0];
 
-        // Newest first: the head of this list is the current issue, the tail is the archive.
-        $issues = Issue::where('journal_id', $currentJournal->id)
-            ->where('is_published', true)
-            ->orderByDesc('publish_at')
-            ->get();
-
-        $current = $issues->first();
+        $listing = JournalListing::for($currentJournal, $chain);
 
         return Inertia::render('public/journal-home', [
             // Site chrome, so this page wears the same header and footer as every other public
             // page. socialLinks comes from the shared helper rather than being rebuilt here —
             // the CMS page's footer lost its icons precisely by rebuilding it and forgetting.
             'site' => [
-                'title' => $site->title,
+                'title' => $site->displayTitle(),
                 'logoUrl' => $site->logoUrl(),
-                'footerText' => $site->settings['footer_text'] ?? null,
+                'footerText' => $site->displayFooterText(),
             ],
-            'menuItems' => $site->settings['menu_items'] ?? [],
+            'menuItems' => $site->displayMenuItems(),
             'socialLinks' => $site->socialLinks(),
 
             'journal' => [
@@ -66,20 +59,8 @@ class PublicJournalController extends Controller
             ],
             'content' => $this->textSettings($currentJournal, $locale),
 
-            'currentIssue' => $current ? [
-                'identification' => $current->identification(),
-                'title' => $current->title?->get(...$chain),
-                'articles' => $this->publishedArticles($currentJournal, $current, $chain),
-            ] : null,
-
-            // Everything older than the current issue. Counted, not loaded — the archive shows
-            // how much is in each issue without pulling every publication on the site.
-            'archive' => $issues->skip(1)->map(fn (Issue $issue) => [
-                'id' => $issue->id,
-                'identification' => $issue->identification(),
-                'title' => $issue->title?->get(...$chain),
-                'articleCount' => Publication::publishedIn($currentJournal, $issue)->count(),
-            ])->values(),
+            'currentIssue' => $listing['currentIssue'],
+            'archive' => $listing['archive'],
         ]);
     }
 
@@ -103,28 +84,5 @@ class PublicJournalController extends Controller
         }
 
         return $content;
-    }
-
-    /**
-     * @return array<int, array{id: int, title: ?string, authors: string}>
-     *
-     * @see Publication::scopePublishedIn() for why status alone is not enough.
-     */
-    /** @param list<string> $chain */
-    private function publishedArticles(Journal $journal, Issue $issue, array $chain): array
-    {
-        return Publication::publishedIn($journal, $issue)
-            ->with('contributors')
-            ->orderBy('published_at')
-            ->get()
-            ->map(fn (Publication $publication) => [
-                'id' => $publication->id,
-                'title' => $publication->title->get(...$chain),
-                'authors' => $publication->contributors
-                    ->map(fn ($c) => trim("{$c->given_name} {$c->family_name}"))
-                    ->implode(', '),
-            ])
-            ->values()
-            ->all();
     }
 }

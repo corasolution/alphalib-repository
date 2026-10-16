@@ -1,3 +1,4 @@
+import FeaturedJournal from '@/components/featured-journal';
 import PublicSiteLayout from '@/layouts/public-site-layout';
 import { useTranslations } from '@/lib/i18n';
 import { Link } from '@inertiajs/react';
@@ -12,7 +13,7 @@ import { type TemplateProps } from './types';
  * numbered lines rather than cards. Nothing is lost: the images and card styling stay in the CMS
  * and reappear the moment a template that uses them is selected.
  */
-export default function MinimalTemplate({ site, menuItems, socialLinks, highlights, journals }: TemplateProps) {
+export default function MinimalTemplate({ site, menuItems, socialLinks, highlights, journals, featuredJournal }: TemplateProps) {
     const { t } = useTranslations();
 
     return (
@@ -56,26 +57,30 @@ export default function MinimalTemplate({ site, menuItems, socialLinks, highligh
                     </section>
                 )}
 
-                <section className="border-site-border mt-16 border-t pt-10">
-                    <h2 className="text-site-muted font-display mb-2 text-xs font-semibold tracking-[0.25em] uppercase">{t('home.journals')}</h2>
+                {featuredJournal ? (
+                    <FeaturedJournal featured={featuredJournal} />
+                ) : (
+                    <section className="border-site-border mt-16 border-t pt-10">
+                        <h2 className="text-site-muted font-display mb-2 text-xs font-semibold tracking-[0.25em] uppercase">{t('home.journals')}</h2>
 
-                    {journals.length === 0 ? (
-                        <p className="text-site-muted font-body py-10">{t('home.no_journals')}</p>
-                    ) : (
-                        <ul>
-                            {journals.map((journal) => (
-                                <li key={journal.path} className="border-site-border border-b last:border-b-0">
-                                    <Link href={`/journal/${journal.path}`} className="group flex items-center justify-between gap-6 py-6">
-                                        <span className="text-site-ink group-hover:text-site-primary font-display text-2xl font-semibold transition-colors">
-                                            {journal.title}
-                                        </span>
-                                        <ArrowRight className="text-site-muted group-hover:text-site-primary size-5 shrink-0 transition-all group-hover:translate-x-1" />
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </section>
+                        {journals.length === 0 ? (
+                            <p className="text-site-muted font-body py-10">{t('home.no_journals')}</p>
+                        ) : (
+                            <ul>
+                                {journals.map((journal) => (
+                                    <li key={journal.path} className="border-site-border border-b last:border-b-0">
+                                        <Link href={`/journal/${journal.path}`} className="group flex items-center justify-between gap-6 py-6">
+                                            <span className="text-site-ink group-hover:text-site-primary font-display text-2xl font-semibold transition-colors">
+                                                {journal.title}
+                                            </span>
+                                            <ArrowRight className="text-site-muted group-hover:text-site-primary size-5 shrink-0 transition-all group-hover:translate-x-1" />
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
+                )}
             </div>
         </PublicSiteLayout>
     );

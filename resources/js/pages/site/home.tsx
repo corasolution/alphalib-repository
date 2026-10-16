@@ -1,4 +1,5 @@
 import AcademicTemplate from './templates/academic';
+import BlueTemplate from './templates/blue';
 import BoldTemplate from './templates/bold';
 import ClassicTemplate from './templates/classic';
 import MagazineTemplate from './templates/magazine';
@@ -22,6 +23,7 @@ const TEMPLATES = {
     magazine: MagazineTemplate,
     minimal: MinimalTemplate,
     bold: BoldTemplate,
+    blue: BlueTemplate,
 } as const;
 
 export default function SiteHome({ template, ...props }: TemplateProps & { template: string }) {

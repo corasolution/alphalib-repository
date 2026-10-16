@@ -130,7 +130,7 @@ export default function SitePageShow({ site, menuItems, socialLinks, page, board
                             <ChevronRight className="size-3.5 shrink-0" aria-hidden="true" />
                             <span className="text-white/80">{page.title}</span>
                         </nav>
-                        <h1 className="max-w-3xl font-display text-4xl font-bold tracking-tight text-balance">{page.title}</h1>
+                        <h1 className="max-w-3xl font-display text-[22px] font-bold tracking-tight text-balance">{page.title}</h1>
                     </div>
                 </section>
             }

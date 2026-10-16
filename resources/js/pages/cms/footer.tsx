@@ -12,6 +12,7 @@ import { FormEventHandler } from 'react';
 
 interface Props {
     footerText: string;
+    footerTextKm: string;
     socialLinks: Record<string, string>;
 }
 
@@ -23,16 +24,19 @@ const SOCIAL_PLATFORMS: { key: string; label: string; icon: typeof Facebook }[] 
     { key: 'instagram', label: 'Instagram', icon: Instagram },
 ];
 
-export default function CmsFooter({ footerText, socialLinks }: Props) {
+export default function CmsFooter({ footerText, footerTextKm, socialLinks }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'CMS', href: route('cms.index') },
         { title: 'Footer & social', href: '#' },
     ];
 
-    const { data, setData, put, processing, errors } = useForm<{ footer_text: string; social_links: Record<string, string> }>({
-        footer_text: footerText,
-        social_links: socialLinks,
-    });
+    const { data, setData, put, processing, errors } = useForm<{ footer_text: string; footer_text_km: string; social_links: Record<string, string> }>(
+        {
+            footer_text: footerText,
+            footer_text_km: footerTextKm,
+            social_links: socialLinks,
+        },
+    );
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -64,6 +68,19 @@ export default function CmsFooter({ footerText, socialLinks }: Props) {
                                     onChange={(e) => setData('footer_text', e.target.value)}
                                 />
                                 <InputError message={errors.footer_text} />
+                            </div>
+
+                            <div className="mt-4 grid gap-2">
+                                <Label htmlFor="footer_text_km">Khmer translation (ភាសាខ្មែរ)</Label>
+                                <textarea
+                                    id="footer_text_km"
+                                    lang="km"
+                                    className="border-input bg-background min-h-24 rounded-md border px-3 py-2 text-sm shadow-sm"
+                                    value={data.footer_text_km}
+                                    onChange={(e) => setData('footer_text_km', e.target.value)}
+                                />
+                                <p className="text-muted-foreground text-xs">Shown when a visitor switches to Khmer. Blank keeps the English text.</p>
+                                <InputError message={errors.footer_text_km} />
                             </div>
                         </CardContent>
                     </Card>

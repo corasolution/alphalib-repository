@@ -111,15 +111,15 @@ class SitePageController extends Controller
 
         return Inertia::render('site/pages/show', [
             'site' => [
-                'title' => $site->title,
+                'title' => $site->displayTitle(),
                 'logoUrl' => $site->logoUrl(),
-                'footerText' => $site->settings['footer_text'] ?? null,
+                'footerText' => $site->displayFooterText(),
             ],
             // The same header menu the homepage renders — a content page is a destination for
             // those links, so losing the nav on arrival would strand the visitor. The social
             // links are here for the same reason: without them this page's footer quietly
             // rendered without the icons every other public page shows.
-            'menuItems' => $site->settings['menu_items'] ?? [],
+            'menuItems' => $site->displayMenuItems(),
             'socialLinks' => $site->socialLinks(),
             'page' => [
                 'title' => $page->title,

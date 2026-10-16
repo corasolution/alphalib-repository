@@ -1,6 +1,6 @@
 import { useTranslations } from '@/lib/i18n';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Facebook, Globe, Instagram, Linkedin, LogIn, Menu, Search, Twitter, X, Youtube } from 'lucide-react';
+import { Facebook, Globe, House, Instagram, Linkedin, LogIn, Menu, Search, Twitter, X, Youtube } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 
 export interface MenuItem {
@@ -182,7 +182,12 @@ export default function PublicSiteLayout({
 
     // Shared by HandleInertiaRequests, so every page that uses this layout has them without
     // its controller needing to know they exist.
-    const siteBadges = (usePage().props.siteBadges ?? {}) as Record<string, SiteBadge[]>;
+    const { siteBadges: sharedBadges, siteTemplate } = usePage().props as { siteBadges?: Record<string, SiteBadge[]>; siteTemplate?: string };
+    const siteBadges = sharedBadges ?? {};
+    // The Blue design gets a taller masthead: large logo, two-line bold title in cream.
+    const blue = siteTemplate === 'blue';
+    // The Home link marks itself current only on the front page, where it has nowhere to take you.
+    const onHome = usePage().url.split('?')[0] === '/';
 
     // Switching language is an Inertia visit, which never re-renders the blade root — so
     // <html lang> would keep whatever language the page was first loaded in. The div below
@@ -201,17 +206,29 @@ export default function PublicSiteLayout({
               the Latin faces, and the [lang='km'] rules there loosen the leading its subscript
               consonants need (§7 — a Latin-only type scale is explicitly not shippable).
             */}
-            <div lang={locale} className="font-body text-site-body flex min-h-screen flex-col bg-white antialiased">
-                <nav className="bg-site-primary sticky top-0 z-50 w-full">
-                    <div className="mx-auto flex h-20 w-full max-w-[1200px] items-center justify-between gap-4 px-6 xl:max-w-[1320px] xl:gap-12">
+            <div lang={locale} className="font-body text-site-body flex min-h-screen flex-col overflow-x-clip bg-white antialiased">
+                <nav className={`bg-site-primary sticky top-0 z-50 w-full ${blue ? 'shadow-[0_2px_0_0_rgba(247,148,29,.9)]' : ''}`}>
+                    <div
+                        className={`mx-auto flex w-full max-w-[1200px] items-center justify-between gap-4 px-6 ${blue ? 'min-h-24 py-3 xl:max-w-[1320px]' : 'h-20 xl:max-w-[1320px] xl:gap-12'}`}
+                    >
                         {/*
                           The masthead never truncates and never abuts the menu: the site's name is
                           the one thing a reader must be able to read, and when it sat flush against
                           the first nav link the two ran together as one line of white text.
                         */}
-                        <Link href="/" className="flex min-w-0 shrink items-center gap-3 xl:shrink-0">
-                            {site.logoUrl && <img src={site.logoUrl} alt={site.title} className="h-10 w-auto object-contain" />}
-                            <span className="font-display truncate text-base font-bold text-white sm:text-lg xl:text-2xl">{site.title}</span>
+                        <Link href="/" className={`flex min-w-0 shrink items-center ${blue ? 'gap-4' : 'gap-3 xl:shrink-0'}`}>
+                            {site.logoUrl && (
+                                <img
+                                    src={site.logoUrl}
+                                    alt={site.title}
+                                    className={`w-auto object-contain ${blue ? 'h-16 sm:h-[4.5rem]' : 'h-10'}`}
+                                />
+                            )}
+                            {blue ? (
+                                <span className="font-display text-[22px] leading-tight font-bold text-balance text-[#fdf1d3]">{site.title}</span>
+                            ) : (
+                                <span className="font-display truncate text-base font-bold text-white sm:text-lg xl:text-2xl">{site.title}</span>
+                            )}
                         </Link>
                         <div className="flex shrink-0 items-center gap-3 sm:gap-5">
                             {/*
@@ -221,7 +238,7 @@ export default function PublicSiteLayout({
                               fits at; below that it moves into the panel behind the toggle rather
                               than being squeezed until either it or the masthead is clipped.
                             */}
-                            <div className="hidden items-center gap-7 xl:flex">
+                            <div className={`hidden items-center gap-7 ${blue ? '' : 'xl:flex'}`}>
                                 {menuItems.map((item) => (
                                     <a
                                         key={item.url}
@@ -236,7 +253,7 @@ export default function PublicSiteLayout({
                             <HeaderSearch />
 
                             {/* Separates where you can go from what you can do. */}
-                            {menuItems.length > 0 && <div className="hidden h-6 w-px shrink-0 bg-white/25 xl:block" aria-hidden="true" />}
+                            {menuItems.length > 0 && !blue && <div className="hidden h-6 w-px shrink-0 bg-white/25 xl:block" aria-hidden="true" />}
 
                             <div className="hidden sm:block">
                                 <LanguageSwitcher />
@@ -265,7 +282,7 @@ export default function PublicSiteLayout({
                                     aria-expanded={menuOpen}
                                     aria-controls="site-menu"
                                     aria-label={t('nav.menu')}
-                                    className="flex shrink-0 items-center justify-center rounded-full border border-white/40 p-2 text-white transition-colors hover:border-white hover:bg-white/10 xl:hidden"
+                                    className={`flex shrink-0 items-center justify-center rounded-full border border-white/40 p-2 text-white transition-colors hover:border-white hover:bg-white/10 ${blue ? 'lg:hidden' : 'xl:hidden'}`}
                                 >
                                     {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
                                 </button>
@@ -274,13 +291,50 @@ export default function PublicSiteLayout({
                     </div>
 
                     {/*
+                      Blue puts the menu on its own bar under the masthead, as the catalogue does, so
+                      a long site name keeps the full width instead of forcing the menu to collapse.
+                    */}
+                    {blue && (
+                        <div className="bg-site-primary-deep/60 hidden border-t border-white/10 lg:block">
+                            <div className="mx-auto flex max-w-[1200px] items-center gap-8 px-6 xl:max-w-[1320px]">
+                                <Link
+                                    href="/"
+                                    aria-current={onHome ? 'page' : undefined}
+                                    className={`font-display flex items-center gap-2 border-b-2 py-3 text-sm font-semibold tracking-wider whitespace-nowrap uppercase transition-colors hover:border-amber-400 hover:text-white ${onHome ? 'border-amber-400 text-white' : 'border-transparent text-white/90'}`}
+                                >
+                                    <House className="size-4" aria-hidden="true" />
+                                    {t('page.home')}
+                                </Link>
+                                {menuItems.map((item) => (
+                                    <a
+                                        key={item.url}
+                                        href={item.url}
+                                        className="font-display border-b-2 border-transparent py-3 text-sm font-semibold tracking-wider whitespace-nowrap text-white/90 uppercase transition-colors hover:border-amber-400 hover:text-white"
+                                    >
+                                        {item.label}
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/*
                       The narrow-screen menu. Until this existed the links were simply hidden below
                       the inline breakpoint, so a phone reader had no way to reach Ethics, Contact
                       or the submission guidelines at all.
                     */}
                     {menuOpen && menuItems.length > 0 && (
-                        <div id="site-menu" className="bg-site-primary-dark xl:hidden">
+                        <div id="site-menu" className={`bg-site-primary-dark ${blue ? 'lg:hidden' : 'xl:hidden'}`}>
                             <div className="mx-auto flex max-w-[1200px] flex-col px-6 py-2">
+                                {blue && (
+                                    <Link
+                                        href="/"
+                                        className="font-display flex items-center gap-2 border-b border-white/10 py-3 text-sm font-semibold tracking-wider text-white/90 uppercase transition-colors hover:text-white"
+                                    >
+                                        <House className="size-4" aria-hidden="true" />
+                                        {t('page.home')}
+                                    </Link>
+                                )}
                                 {menuItems.map((item) => (
                                     <a
                                         key={item.url}
@@ -417,31 +471,7 @@ export default function PublicSiteLayout({
                             <p>{t('footer.strapline')}</p>
                         </div>
 
-                        {/*
-                          Platform attribution. Deliberately not site.title: that is the customer's
-                          own name and is now admin-editable, so reading it from there would make a
-                          renamed journal claim to be powered by itself.
-                        */}
-                        <p className="text-site-accent/70 mt-4 text-center text-xs">
-                            {t('footer.powered_by')}{' '}
-                            <a
-                                href="https://www.alphalib.org"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="transition-colors hover:text-white"
-                            >
-                                Alpha Journal
-                            </a>
-                            <span className="mx-1.5">|</span>
-                            <a
-                                href="https://www.alphalib.org"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="transition-colors hover:text-white"
-                            >
-                                www.alphalib.org
-                            </a>
-                        </p>
+                        <p className="text-site-accent/70 mt-4 text-center text-xs">{t('footer.developed_by')}</p>
                     </div>
                 </footer>
             </div>

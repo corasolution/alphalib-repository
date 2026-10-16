@@ -57,6 +57,7 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call(SiteContentSeeder::class);
+        $this->call(SiteTranslationsSeeder::class);
 
         $this->command?->info("Seeded site admin: {$admin->email} / journal manager: {$manager->email} (password: password) / journal: /{$journal->path}");
     }

@@ -42,7 +42,19 @@ class CmsController extends Controller
                 'tagline' => $site->settings['tagline'] ?? '',
                 'about' => $site->settings['about'] ?? '',
                 'redirectJournalId' => $site->redirect_journal_id,
+                'embedJournalId' => $site->settings['embed_journal_id'] ?? null,
                 'logoUrl' => $site->logoUrl(),
+                'km' => [
+                    'title' => $site->settings['translations']['km']['title'] ?? '',
+                    'tagline' => $site->settings['translations']['km']['tagline'] ?? '',
+                    'about' => $site->settings['translations']['km']['about'] ?? '',
+                    'highlights' => collect($site->settings['translations']['km']['highlights'] ?? [])
+                        ->pad(Site::HIGHLIGHT_SLOTS, [])
+                        ->map(fn ($card) => ['title' => $card['title'] ?? '', 'body' => $card['body'] ?? ''])
+                        ->take(Site::HIGHLIGHT_SLOTS)
+                        ->values()
+                        ->all(),
+                ],
             ],
             // Padded to a fixed length so the form always shows every slot — an admin filling in
             // the third card shouldn't have to first discover a hidden "add another" control.
@@ -74,6 +86,14 @@ class CmsController extends Controller
             'highlights.*.title' => ['nullable', 'string', 'max:120'],
             'highlights.*.body' => ['nullable', 'string', 'max:600'],
             'redirect_journal_id' => ['nullable', 'integer', 'exists:journals,id'],
+            'embed_journal_id' => ['nullable', 'integer', 'exists:journals,id'],
+            'km' => ['nullable', 'array'],
+            'km.title' => ['nullable', 'string', 'max:255'],
+            'km.tagline' => ['nullable', 'string', 'max:500'],
+            'km.about' => ['nullable', 'string', 'max:5000'],
+            'km.highlights' => ['nullable', 'array', 'max:'.Site::HIGHLIGHT_SLOTS],
+            'km.highlights.*.title' => ['nullable', 'string', 'max:120'],
+            'km.highlights.*.body' => ['nullable', 'string', 'max:600'],
             'logo' => ['nullable', 'file', 'mimes:png,jpg,jpeg,svg,webp', 'max:'.UploadLimits::imageKilobytes()],
         ]);
 
@@ -89,6 +109,9 @@ class CmsController extends Controller
         $this->mergeSettings($site, [
             'tagline' => $data['tagline'] ?? null,
             'about' => $data['about'] ?? null,
+            // Show one journal's issues on the homepage itself, instead of the list of journals.
+            // Unlike the redirect this keeps the visitor on '/', in the site's own design.
+            'embed_journal_id' => $data['embed_journal_id'] ?? null,
             // Blank slots are dropped rather than stored, so the public strip never renders an
             // empty numbered card. Clearing all three leaves an empty array, which mergeSettings
             // then filters out entirely — that is how an admin turns the strip off.
@@ -100,6 +123,24 @@ class CmsController extends Controller
                 ->filter(fn ($card) => $card['title'] !== null || $card['body'] !== null)
                 ->values()
                 ->all(),
+        ]);
+
+        // The Khmer version. Slots keep their position (a blank card stays blank) because a
+        // translated card is matched to its English card by index.
+        $km = $data['km'] ?? [];
+        $kmHighlights = collect($km['highlights'] ?? [])
+            ->take(Site::HIGHLIGHT_SLOTS)
+            ->map(fn ($card) => [
+                'title' => filled($card['title'] ?? null) ? trim($card['title']) : null,
+                'body' => filled($card['body'] ?? null) ? trim($card['body']) : null,
+            ])
+            ->values();
+
+        $this->mergeTranslations($site, 'km', [
+            'title' => $km['title'] ?? null,
+            'tagline' => $km['tagline'] ?? null,
+            'about' => $km['about'] ?? null,
+            'highlights' => $kmHighlights->contains(fn ($card) => $card['title'] !== null || $card['body'] !== null) ? $kmHighlights->all() : null,
         ]);
 
         return back()->with('success', 'Homepage updated.');
@@ -164,7 +205,9 @@ class CmsController extends Controller
         Gate::authorize('manage', Site::class);
 
         return Inertia::render('cms/menu', [
-            'menuItems' => $site->settings['menu_items'] ?? [],
+            'menuItems' => collect($site->settings['menu_items'] ?? [])
+                ->map(fn (array $item) => $item + ['label_km' => $site->settings['translations']['km']['menu_labels'][$item['url']] ?? ''])
+                ->all(),
         ]);
     }
 
@@ -178,10 +221,21 @@ class CmsController extends Controller
             'menu_items' => ['nullable', 'array'],
             'menu_items.*.label' => ['required_with:menu_items', 'string', 'max:100'],
             'menu_items.*.url' => ['required_with:menu_items', 'string', 'max:500'],
+            'menu_items.*.label_km' => ['nullable', 'string', 'max:100'],
         ]);
 
+        $items = array_values($data['menu_items'] ?? []);
+
         $this->mergeSettings($site, [
-            'menu_items' => array_values($data['menu_items'] ?? []) ?: null,
+            'menu_items' => collect($items)->map(fn ($item) => ['label' => $item['label'], 'url' => $item['url']])->all() ?: null,
+        ]);
+
+        // Khmer labels are keyed by URL, so a reordered menu cannot attach a label to the wrong link.
+        $this->mergeTranslations($site, 'km', [
+            'menu_labels' => collect($items)
+                ->filter(fn ($item) => filled($item['label_km'] ?? null))
+                ->mapWithKeys(fn ($item) => [$item['url'] => trim($item['label_km'])])
+                ->all() ?: null,
         ]);
 
         return back()->with('success', 'Menu updated.');
@@ -195,6 +249,7 @@ class CmsController extends Controller
 
         return Inertia::render('cms/footer', [
             'footerText' => $site->settings['footer_text'] ?? '',
+            'footerTextKm' => $site->settings['translations']['km']['footer_text'] ?? '',
             'socialLinks' => collect(Site::SOCIAL_PLATFORMS)
                 ->mapWithKeys(fn ($platform) => [$platform => $site->settings['social_links'][$platform] ?? '']),
         ]);
@@ -208,6 +263,7 @@ class CmsController extends Controller
 
         $data = $request->validate([
             'footer_text' => ['nullable', 'string', 'max:1000'],
+            'footer_text_km' => ['nullable', 'string', 'max:1000'],
             'social_links' => ['nullable', 'array'],
             'social_links.*' => ['nullable', 'string', 'max:500'],
         ]);
@@ -219,6 +275,8 @@ class CmsController extends Controller
                 fn ($value) => filled($value),
             ) ?: null,
         ]);
+
+        $this->mergeTranslations($site, 'km', ['footer_text' => $data['footer_text_km'] ?? null]);
 
         return back()->with('success', 'Footer updated.');
     }
@@ -342,6 +400,28 @@ class CmsController extends Controller
      *
      * @param  array<string, mixed>  $changes
      */
+    /**
+     * Writes one language's translations into Site.settings, leaving the other languages and the
+     * rest of the settings alone. Blank values are dropped, so clearing a field removes the
+     * translation and the page falls back to the primary text.
+     *
+     * @param  array<string, mixed>  $changes
+     */
+    private function mergeTranslations(Site $site, string $locale, array $changes): void
+    {
+        $translations = $site->settings['translations'] ?? [];
+
+        $merged = array_filter(array_merge($translations[$locale] ?? [], $changes), fn ($value) => filled($value));
+
+        if ($merged === []) {
+            unset($translations[$locale]);
+        } else {
+            $translations[$locale] = $merged;
+        }
+
+        $this->mergeSettings($site, ['translations' => $translations ?: null]);
+    }
+
     private function mergeSettings(Site $site, array $changes): void
     {
         $merged = array_merge($site->settings ?? [], $changes);

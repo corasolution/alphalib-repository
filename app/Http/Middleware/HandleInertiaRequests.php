@@ -5,6 +5,7 @@ namespace Alpha\Journal\Http\Middleware;
 use Alpha\Journal\Models\SiteBadge;
 use Alpha\Journal\Support\CurrentSite;
 use Alpha\Journal\Support\Locales;
+use Alpha\Journal\Support\SiteTheme;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -60,6 +61,10 @@ class HandleInertiaRequests extends Middleware
             // render in the public layout, which six different controllers feed — a page that
             // forgot the prop would silently drop the strips rather than fail visibly.
             'siteBadges' => $this->badges(),
+
+            // The active landing template, so the shared public chrome can follow it. Without this the
+            // header and footer would look the same under every design.
+            'siteTemplate' => app(SiteTheme::class)->template($request),
 
             // Language state, shared rather than passed per-page: the switch lives in the layout,
             // so every page needs it, and a page that forgot to pass it would render an empty

@@ -75,11 +75,13 @@ class Site extends Model
      */
     public function highlights(): array
     {
+        $translated = $this->translated('highlights') ?? [];
+
         return collect($this->settings['highlights'] ?? [])
             ->take(self::HIGHLIGHT_SLOTS)
-            ->map(fn ($card) => [
-                'title' => filled($card['title'] ?? null) ? trim($card['title']) : null,
-                'body' => filled($card['body'] ?? null) ? trim($card['body']) : null,
+            ->map(fn ($card, $index) => [
+                'title' => $this->pick($translated[$index]['title'] ?? null, $card['title'] ?? null),
+                'body' => $this->pick($translated[$index]['body'] ?? null, $card['body'] ?? null),
             ])
             // A card with neither a title nor body would render as an empty numbered box.
             ->filter(fn (array $card) => $card['title'] !== null || $card['body'] !== null)
@@ -95,6 +97,69 @@ class Site extends Model
      *
      * @return Collection<string, string>
      */
+    /**
+     * A translated value for the reader's language, or null when the site is being read in its
+     * primary language or no translation was entered. Callers fall back to the primary text, so
+     * an untranslated site simply keeps showing what it showed before.
+     */
+    public function translated(string $key): mixed
+    {
+        $locale = app()->getLocale();
+
+        if ($locale === $this->primary_locale) {
+            return null;
+        }
+
+        $value = $this->settings['translations'][$locale][$key] ?? null;
+
+        return filled($value) ? $value : null;
+    }
+
+    public function displayTitle(): string
+    {
+        return $this->translated('title') ?? $this->title;
+    }
+
+    public function displayTagline(): ?string
+    {
+        return $this->translated('tagline') ?? ($this->settings['tagline'] ?? null);
+    }
+
+    public function displayAbout(): ?string
+    {
+        return $this->translated('about') ?? ($this->settings['about'] ?? null);
+    }
+
+    public function displayFooterText(): ?string
+    {
+        return $this->translated('footer_text') ?? ($this->settings['footer_text'] ?? null);
+    }
+
+    /**
+     * The header menu with labels in the reader's language. Translations are keyed by URL rather
+     * than position, so reordering or inserting an item cannot attach a label to the wrong link.
+     *
+     * @return array<int, array{label: string, url: string}>
+     */
+    public function displayMenuItems(): array
+    {
+        $labels = $this->translated('menu_labels') ?? [];
+
+        return collect($this->settings['menu_items'] ?? [])
+            ->map(fn (array $item) => [
+                'label' => filled($labels[$item['url']] ?? null) ? $labels[$item['url']] : $item['label'],
+                'url' => $item['url'],
+            ])
+            ->all();
+    }
+
+    private function pick(mixed $translated, mixed $base): ?string
+    {
+        $value = filled($translated) ? $translated : $base;
+
+        return filled($value) ? trim($value) : null;
+    }
+
     public function socialLinks(): Collection
     {
         return collect($this->settings['social_links'] ?? [])

@@ -41,7 +41,7 @@ class CurrentSite
     /** The system name shown in the sidebar, on the login screen, and in the browser tab. */
     public function name(): string
     {
-        return $this->get()?->title ?: config('app.name', 'Alpha Journal');
+        return $this->get()?->displayTitle() ?: config('app.name', 'Alpha Journal');
     }
 
     public function logoUrl(): ?string
